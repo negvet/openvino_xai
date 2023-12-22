@@ -20,6 +20,7 @@ class ClassificationInsertionParameters(InsertionParameters):
     Explain parameters for classification.
 
     :parameter target_layer: Target layer (node) name after which the XAI branch will be inserted.
+        Optional, if not provided, insertion module will try to find target insertion node.
     :type target_layer: str
     :parameter embed_normalization: If set to True, saliency map normalization is embedded in the model.
     :type embed_normalization: bool
