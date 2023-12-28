@@ -241,24 +241,34 @@ tests/assets/cheetah_person.jpg --output output
 
 
 
-## Updated usage proposal (following request from Mark and Minje)
+## Updated (new) usage proposal (following request from Mark and Minje)
 
-Insert API, should be preserved:
+Insert API, should be preserved as is:
 ```python
-model_xai = ovxai.insert(model)
+model_xai = ovxai.insert_xai(model, insertion_params)
 ```
+Insert API usage scenarios:
+- For those who do not want to share/modify inference code
+- For those who do not want to have additional dependency (ovxai lib) in the inference/debug pipeline.
 
-Explain API:
+Explain API. Requested the following:
 ```python
 explanation = ovxai.explain(model, data)  # Not possible, inference code required
 ```
+Above is not possible - inference code required to get maps. 
 
-To be able to output explanation in one step (from the user perspective), explain api should have access to: 
-the model, model load code, model inference code (at least), etc.
+To be able to output explanation in one step (from the user perspective in one explain call), 
+explain api should have access to (at least): 
+- model itself
+- model update code
+- model load code 
+- model inference code
 
-Requirements for the model inferrer:
+To support this, here are the requirements for the model inferrer (pay attention to the interface overhead of WhiteBoxModelInferrer):
 ```python
 from abc import ABC, abstractmethod
+
+from openvino_xai.explanation.utils import InferenceResult
 
 
 class ModelInferrer(ABC):
@@ -266,11 +276,12 @@ class ModelInferrer(ABC):
     def __call__(
             self, x: Union[np.ndarray, List[np.ndarray], Tuple[np.ndarray], Dict[str, np.ndarray]]
     ) -> InferenceResult:
-        """Implements forward pass."""
+        """Implements forward pass and returns ."""
         raise NotImplementedError
 
 
 class WhiteBoxModelInferrer(ModelInferrer, ABC):
+    """Used for WhiteBox, also supports auto explain feature."""
     def get_model(self) -> ov.Model:
         """Get the model."""
         raise NotImplementedError
@@ -287,10 +298,11 @@ class WhiteBoxModelInferrer(ModelInferrer, ABC):
 
 
 class BlackBoxModelInferrer(ModelInferrer, ABC):
+    """Basically needs just __call__ implementation with InferenceResult output."""
     pass
 ```
 
-Usage example:
+WhiteBox usage example:
 ```python
 import cv2
 import numpy as np
@@ -342,8 +354,72 @@ explanation = ovxai.explain(
 ```
 
 Pros:
-- simple explain call
+- Single explain call (instead of two-step process: insert() + explain()). Let's say 2x savings here.
 - Can supports auto-explain mode
 
 Cons:
-- Significant effort for the preparation of the model inference code
+- Much more complex inference code requirements. 4x more interface requirements. 
+(not all users will be ready to follow the WhiteBoxModelInferrer requirements)
+
+
+
+
+## Current usage (just to compare with the new proposal from above)
+
+```python
+from abc import ABC, abstractmethod
+
+from openvino_xai.explanation.utils import InferenceResult
+
+
+class ModelInferrer(ABC):
+    @abstractmethod
+    def __call__(
+            self, x: Union[np.ndarray, List[np.ndarray], Tuple[np.ndarray], Dict[str, np.ndarray]]
+    ) -> InferenceResult:
+        """Implements forward pass and returns ."""
+        raise NotImplementedError
+```
+
+WhiteBox usage example:
+```python
+import cv2
+import numpy as np
+import openvino.runtime as ov
+
+import openvino_xai as ovxai
+from openvino_xai.explanation.utils import InferenceResult
+
+
+class CustomModelInferrer(ModelInferrer):        
+    def __call__(
+            self, x: Union[np.ndarray, List[np.ndarray], Tuple[np.ndarray], Dict[str, np.ndarray]]
+    ) -> InferenceResult:
+        # ***** Start of user's forward pass code *****
+        # Forward pass code:
+        # - preprocessing
+        # - inference
+        # - postprocessing
+        # ***** End of user's forward pass code *****
+        
+        prediction = processed_logits
+        raw_saliency_map = raw_model_output["saliency_map"]
+        
+        # Create InferenceResult object
+        inference_result = InferenceResult(prediction=prediction, saliency_map=raw_saliency_map)
+        return inference_result
+
+# Step 1
+model = ov.Core().read_model("path/to/model.xml")  # type: ov.Model
+model_xai = ovxai.insert_xai(
+    model=model,
+    task_type=TaskType.CLASSIFICATION,
+)
+
+# Step 2
+model_inferrer = CustomModelInferrer(model_xai)
+explanation = ovxai.explain(
+    model_inferrer=model_inferrer,
+    data=cv2.imread("path/to/image.jpg"),
+)
+```
