@@ -18,6 +18,7 @@ class ExplainMode(Enum):
 
     WHITEBOX = "whitebox"
     BLACKBOX = "blackbox"
+    AUTO = "auto"
 
 
 class TargetExplainGroup(Enum):
@@ -33,14 +34,7 @@ class TargetExplainGroup(Enum):
 
     IMAGE = "image"
     ALL = "all"
-    PREDICTIONS = "predictions"
     CUSTOM = "custom"
-
-
-SELECTED_TARGETS = {
-    TargetExplainGroup.PREDICTIONS,
-    TargetExplainGroup.CUSTOM,
-}
 
 
 @dataclass
@@ -78,8 +72,8 @@ class ExplanationParameters:
     :type explain_mode: ExplainMode
     :parameter target_explain_group: Target explain group.
     :type target_explain_group: TargetExplainGroup
-    :param custom_target_indices: List of indices of custom targets, optional.
-    :type custom_target_indices: Optional[List[int]]
+    :param target_explain_indices: List of indices of custom targets, optional.
+    :type target_explain_indices: Optional[List[int]]
     :parameter post_processing_parameters: Post-process parameters.
     :type post_processing_parameters: PostProcessParameters
     :parameter confidence_threshold: Prediction confidence threshold.
@@ -90,14 +84,11 @@ class ExplanationParameters:
     :type black_box_method_kwargs: dict
     """
 
-    explain_mode: ExplainMode = ExplainMode.WHITEBOX
-    target_explain_group: TargetExplainGroup = TargetExplainGroup.PREDICTIONS
-    explain_target_names: Optional[List[str]] = None
-    custom_target_indices: Optional[List[int]] = None
+    target_explain_group: TargetExplainGroup = TargetExplainGroup.CUSTOM
+    target_explain_indices: Optional[List[int]] = None
+    target_explain_names: Optional[List[str]] = None
     post_processing_parameters: PostProcessParameters = PostProcessParameters(overlay=True)
-    confidence_threshold: float = 0.5
     black_box_method: XAIMethodType = XAIMethodType.RISE
-    black_box_method_kwargs: Dict = field(default_factory=dict)
 
 
 class SaliencyMapLayout(Enum):

@@ -120,10 +120,9 @@ class FeatureMapPerturbationBase(WhiteBoxXAIMethodBase):
         self.per_class = True
         self.supported_target_explain_groups = [
             TargetExplainGroup.ALL,
-            TargetExplainGroup.PREDICTIONS,
             TargetExplainGroup.CUSTOM,
         ]
-        self.default_target_explain_group = TargetExplainGroup.PREDICTIONS
+        self.default_target_explain_group = TargetExplainGroup.CUSTOM
         self._target_layer = target_layer
 
     def generate_xai_branch(self):
@@ -399,7 +398,6 @@ class DetClassProbabilityMapXAIMethod(WhiteBoxXAIMethodBase):
         self.per_class = True
         self.supported_target_explain_groups = [
             TargetExplainGroup.ALL,
-            TargetExplainGroup.PREDICTIONS,
             TargetExplainGroup.CUSTOM,
         ]
         self.default_target_explain_group = TargetExplainGroup.ALL
