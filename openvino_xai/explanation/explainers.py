@@ -42,7 +42,7 @@ class Explainer:
     def _set_explain_mode(self):
         if self.explain_mode == ExplainMode.WHITEBOX:
             if has_xai(self.model):
-                logger.info("Model already has XAI - using white box mode.")
+                logger.info("Model already has XAI - using white-box mode.")
             else:
                 self._insert_xai()
                 logger.info("Explaining the model in the white-box mode.")
@@ -52,7 +52,7 @@ class Explainer:
             logger.info("Explaining the model in the black-box mode.")
         elif self.explain_mode == ExplainMode.AUTO:
             if has_xai(self.model):
-                logger.info("Model already has XAI - using white box mode.")
+                logger.info("Model already has XAI - using white-box mode.")
                 self.explain_mode = ExplainMode.WHITEBOX
             else:
                 try:
@@ -70,7 +70,7 @@ class Explainer:
             raise ValueError(f"Not supported explain mode {self.explain_mode}.")
 
     def _insert_xai(self):
-        logger.info("Model does not have XAI - trying to insert XAI to use white box mode.")
+        logger.info("Model does not have XAI - trying to insert XAI to use white-box mode.")
         # Do we need to keep the original model?
         self.model = openvino_xai.insert_xai(self.model, self.task_type, self.insertion_parameters)
 
@@ -116,4 +116,4 @@ class Explainer:
                 **kwargs,
             )
             return saliency_map
-        raise ValueError(f"Task type {self.task_type} is not supported in the black box mode.")
+        raise ValueError(f"Task type {self.task_type} is not supported in the black-box mode.")

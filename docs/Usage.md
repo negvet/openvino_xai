@@ -1,6 +1,6 @@
 # OpenVINO-XAI (OVXAI) usage
 
-OVXAI objective is to explain the model.
+OpenVINO-XAI provides a suite of eXplainable AI (XAI) algorithms for explanation of OpenVINO™ Intermediate Representation (IR).
 Model explanation helps to identify the parts of the input that are responsible for the model's prediction, 
 which is useful for analyzing model's performance.
 
@@ -11,8 +11,8 @@ OpenVINO-XAI API documentation can be found [here](https://curly-couscous-ovjvm2
 Content:
 - Explainer as interface to XAI algorithms
 - Basic usage (auto mode)
-- Advanced usage (white box)
-- Advanced usage (black box)
+- Advanced usage (white-box)
+- Advanced usage (black-box)
 
 
 ## Explainer as interface to XAI algorithms
@@ -26,9 +26,9 @@ explanation = explainer(data, explanation_parameters)
 ```
 
 
-## Basic usage
+## Basic usage (auto mode)
 
-Under the hood: will try to run white box, if fails => will run black box.
+Under the hood: will try to run white-box, if fails => will run black-box.
 
 ```python
 import cv2
@@ -41,6 +41,7 @@ from openvino_xai.explanation.explanation_parameters import ExplanationParameter
 
 
 def preprocess_fn(x: np.ndarray) -> np.ndarray:
+    # Implementing own pre-process function based on model's implementation
     x = cv2.resize(src=x, dsize=(224, 224))
     x = np.expand_dims(x, 0)
     return x
@@ -67,7 +68,7 @@ explanation.save("output_path", "name")
 ```
 
 
-## Advanced usage (white box)
+## Advanced usage (white-box mode)
 
 ```python
 import cv2
@@ -81,6 +82,7 @@ from openvino_xai.insertion.insertion_parameters import ClassificationInsertionP
 
 
 def preprocess_fn(x: np.ndarray) -> np.ndarray:
+    # Implementing own pre-process function based on model's implementation
     x = cv2.resize(src=x, dsize=(224, 224))
     x = np.expand_dims(x, 0)
     return x
@@ -121,7 +123,7 @@ explanation.save("output_path", "name")
 ```
 
 
-## Advanced usage (black box)
+## Advanced usage (black-box mode)
 
 ```python
 import cv2
@@ -135,11 +137,13 @@ from openvino_xai.insertion.insertion_parameters import ClassificationInsertionP
 
 
 def preprocess_fn(x: np.ndarray) -> np.ndarray:
+    # Implementing own pre-process function based on model's implementation
     x = cv2.resize(src=x, dsize=(224, 224))
     x = np.expand_dims(x, 0)
     return x
 
 def postprocess_fn(x):
+    # Implementing own post-process function based on model's implementation
     return x["logits"]
 
 # Creating model
