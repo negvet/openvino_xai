@@ -27,13 +27,14 @@ def get_argument_parser():
 
 
 def preprocess_fn(x: np.ndarray) -> np.ndarray:
+    x = x[:, :, ::-1]
     x = cv2.resize(src=x, dsize=(224, 224))
     x = x.transpose((2, 0, 1))
     x = np.expand_dims(x, 0)
     return x
 
 
-def postprocess_fn(x):
+def postprocess_fn(x) -> np.ndarray:
     return x["logits"]
 
 
@@ -89,6 +90,8 @@ def explain_white_box(args):
     # Optional - define insertion parameters
     insertion_parameters = ClassificationInsertionParameters(
         # target_layer="last_conv_node_name",  # target_layer - node after which XAI branch will be inserted
+        target_layer="/backbone/conv/conv.2/Div",  # OTX mnet_v3
+        # target_layer="/backbone/features/final_block/activate/Mul",  # OTX effnet
         embed_normalization=True, # True by default.  If set to True, saliency map normalization is embedded in the model
         explain_method_type=XAIMethodType.RECIPROCAM,  # ReciproCAM is the default XAI method for CNNs
     )
@@ -206,19 +209,19 @@ def explain_white_box_multiple_images(args):
             for format_ in img_data_formats:
                 img_files.extend([os.path.join(root, file.name) for file in Path(root).glob(f"*{format_}")])
 
-    # Generate explanations
+    # Generate explanation
     images = [cv2.imread(image_path) for image_path in img_files]
-    explanations = [explainer(image, explanation_parameters) for image in images]
+    explanation = [explainer(image, explanation_parameters) for image in images]
 
     logger.info(
-        f"explain_white_box_multiple_images: Generated {len(explanations)} explanations "
-        f"of layout {explanations[0].layout} with shape {explanations[0].sal_map_shape}."
+        f"explain_white_box_multiple_images: Generated {len(explanation)} explanations "
+        f"of layout {explanation[0].layout} with shape {explanation[0].sal_map_shape}."
     )
 
     # Save saliency maps for visual inspection
     if args.output is not None:
         output = Path(args.output) / "explain_white_box_multiple_images"
-        explanations[0].save(output, Path(args.image_path).stem)
+        explanation[0].save(output, Path(args.image_path).stem)
 
 
 def explain_white_box_vit(args):
