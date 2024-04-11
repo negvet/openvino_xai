@@ -390,7 +390,7 @@ class DetClassProbabilityMapXAIMethod(WhiteBoxXAIMethodBase):
         self,
         model: openvino.runtime.Model,
         target_layer: List[str],
-        num_anchors: List[int],
+        num_anchors: Optional[List[int]] = None,
         saliency_map_size: Union[Tuple[int, int], List[int]] = (23, 23),
         embed_normalization: bool = True,
     ):
@@ -413,23 +413,31 @@ class DetClassProbabilityMapXAIMethod(WhiteBoxXAIMethodBase):
             if op.get_friendly_name() in self._target_layer:
                 cls_head_output_nodes.append(op)
         if len(cls_head_output_nodes) != len(self._target_layer):
-            raise ValueError("Not all target layers were found.")
+            raise ValueError(
+                f"Not all target layers found. "
+                f"Expected to find {len(self._target_layer)}, found {len(cls_head_output_nodes)}."
+            )
 
         # TODO: better handle num_classes num_anchors availability
         _, num_channels, _, _ = cls_head_output_nodes[-1].get_output_partial_shape(0)
-        num_cls_out_channels = num_channels.get_length() // self._num_anchors[-1]
 
-        # Handle anchors
-        for scale_idx in range(len(cls_head_output_nodes)):
-            cls_scores_per_scale = cls_head_output_nodes[scale_idx]
-            _, _, h, w = cls_scores_per_scale.get_output_partial_shape(0)
-            cls_scores_anchor_grouped = opset.reshape(
-                cls_scores_per_scale,
-                (1, self._num_anchors[scale_idx], num_cls_out_channels, h.get_length(), w.get_length()),
-                False,
-            )
-            cls_scores_out = opset.reduce_max(cls_scores_anchor_grouped, 1)
-            cls_head_output_nodes[scale_idx] = cls_scores_out
+        if self._num_anchors:
+            num_cls_out_channels = num_channels.get_length() // self._num_anchors[-1]
+        else:
+            num_cls_out_channels = num_channels.get_length()
+
+        if self._num_anchors:
+            # Handle anchors
+            for scale_idx in range(len(cls_head_output_nodes)):
+                cls_scores_per_scale = cls_head_output_nodes[scale_idx]
+                _, _, h, w = cls_scores_per_scale.get_output_partial_shape(0)
+                cls_scores_anchor_grouped = opset.reshape(
+                    cls_scores_per_scale,
+                    (1, self._num_anchors[scale_idx], num_cls_out_channels, h.get_length(), w.get_length()),
+                    False,
+                )
+                cls_scores_out = opset.reduce_max(cls_scores_anchor_grouped, 1)
+                cls_head_output_nodes[scale_idx] = cls_scores_out
 
         # Handle scales
         for scale_idx in range(len(cls_head_output_nodes)):
