@@ -65,23 +65,18 @@ class PostProcessParameters:
 
 @dataclass
 class ExplanationParameters:
+    # TODO: target_explain_indices and target_explain_names should correspond to each other.
     """
     Parametrize model explanation.
 
-    :parameter explain_mode: Explanation mode.
-    :type explain_mode: ExplainMode
     :parameter target_explain_group: Target explain group.
     :type target_explain_group: TargetExplainGroup
     :param target_explain_indices: List of indices of custom targets, optional.
     :type target_explain_indices: Optional[List[int]]
     :parameter post_processing_parameters: Post-process parameters.
     :type post_processing_parameters: PostProcessParameters
-    :parameter confidence_threshold: Prediction confidence threshold.
-    :type confidence_threshold: float
     :param black_box_method: Defines black-box method type.
     :type black_box_method: XAIMethodType
-    :param black_box_method_kwargs: Defines black-box method kwargs.
-    :type black_box_method_kwargs: dict
     """
 
     target_explain_group: TargetExplainGroup = TargetExplainGroup.CUSTOM

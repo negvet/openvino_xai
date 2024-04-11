@@ -78,6 +78,7 @@ class Explainer:
         self.compiled_model = ov.Core().compile_model(self.model, "CPU")
 
     def __call__(self, data, explanation_parameters=None, **kwargs):
+        """Explainer call that generates processed explanation result."""
         if explanation_parameters is None:
             explanation_parameters = ExplanationParameters()
 
@@ -99,11 +100,14 @@ class Explainer:
         ).postprocess()
         return explanation_result
 
+    def model_forward(self, x) -> ov.utils.data_helpers.wrappers.OVDict:
+        """Forward pass of the compiled model"""
+        x = self.preprocess_fn(x)
+        return self.compiled_model(x)
+
     def _generate_saliency_map_white_box(self, data):
-        data_preprocessed = self.preprocess_fn(data)
-        forward_output = self.compiled_model(data_preprocessed)
-        saliency_map = forward_output[SALIENCY_MAP_OUTPUT_NAME]
-        return saliency_map
+        model_output = self.model_forward(data)
+        return model_output[SALIENCY_MAP_OUTPUT_NAME]
 
     def _generate_saliency_map_black_box(self, data, explanation_parameters, **kwargs):
         if self.task_type == TaskType.CLASSIFICATION:
