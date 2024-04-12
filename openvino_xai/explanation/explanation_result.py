@@ -18,7 +18,6 @@ class ExplanationResult:
     ExplanationResult selects target saliency maps, holds it and its layout.
 
     :param saliency_map: Raw saliency map.
-    :type saliency_map: np.ndarray
     :param target_explain_group: Defines targets to explain: all, only predictions, custom list, per-image.
     :type target_explain_group: TargetExplainGroup
     :param target_explain_indices: List of custom targets, optional.

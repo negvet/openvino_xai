@@ -1,8 +1,8 @@
 # Copyright (C) 2023 Intel Corporation
 # SPDX-License-Identifier: Apache-2.0
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from enum import Enum
-from typing import Optional, List, Dict
+from typing import Optional, List
 
 from openvino_xai.common.parameters import XAIMethodType
 
@@ -65,7 +65,6 @@ class PostProcessParameters:
 
 @dataclass
 class ExplanationParameters:
-    # TODO: target_explain_indices and target_explain_names should correspond to each other.
     """
     Parametrize model explanation.
 

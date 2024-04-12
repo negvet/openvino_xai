@@ -1,5 +1,8 @@
 # Copyright (C) 2023 Intel Corporation
 # SPDX-License-Identifier: Apache-2.0
+from typing import Callable, Optional
+
+import numpy as np
 
 import openvino_xai
 from openvino_xai.algorithms.black_box.black_box_methods import RISE
@@ -13,17 +16,36 @@ from openvino_xai.explanation.explanation_parameters import ExplainMode
 
 import openvino.runtime as ov
 
+from openvino_xai.insertion import InsertionParameters
+
 
 class Explainer:
+    """
+    Explainer sets explain mode, prepare the model, and generates explanations.
+
+    :param model: Original model.
+    :type model: ov.Model
+    :param task_type: Task type.
+    :type task_type: TaskType
+    :param preprocess_fn: Preprocessing function.
+    :type preprocess_fn: Callable[[np.ndarray], np.ndarray]
+    :param postprocess_fn: Postprocessing functions, required for black-box.
+    :type postprocess_fn: Callable[[ov.utils.data_helpers.wrappers.OVDict], np.ndarray]
+    :param explain_mode: Explain mode.
+    :type explain_mode: ExplainMode
+    :param insertion_parameters: XAI insertion parameters.
+    :type insertion_parameters: InsertionParameters]
+    """
+
     def __init__(
             self,
-            model,
-            task_type,
-            preprocess_fn,
-            postprocess_fn=None,
-            explain_mode=ExplainMode.AUTO,
-            insertion_parameters=None,
-    ):
+            model: ov.Model,
+            task_type: TaskType,
+            preprocess_fn: Callable[[np.ndarray], np.ndarray],
+            postprocess_fn: Callable[[ov.utils.data_helpers.wrappers.OVDict], np.ndarray] = None,
+            explain_mode: ExplainMode = ExplainMode.AUTO,
+            insertion_parameters: Optional[InsertionParameters] = None,
+    ) -> None:
         self.model = model
         self.compiled_model = None
         self.task_type = task_type
@@ -39,7 +61,7 @@ class Explainer:
 
         self._load_model()
 
-    def _set_explain_mode(self):
+    def _set_explain_mode(self) -> None:
         if self.explain_mode == ExplainMode.WHITEBOX:
             if has_xai(self.model):
                 logger.info("Model already has XAI - using white-box mode.")
@@ -69,15 +91,20 @@ class Explainer:
         else:
             raise ValueError(f"Not supported explain mode {self.explain_mode}.")
 
-    def _insert_xai(self):
+    def _insert_xai(self) -> None:
         logger.info("Model does not have XAI - trying to insert XAI to use white-box mode.")
         # Do we need to keep the original model?
         self.model = openvino_xai.insert_xai(self.model, self.task_type, self.insertion_parameters)
 
-    def _load_model(self):
+    def _load_model(self) -> None:
         self.compiled_model = ov.Core().compile_model(self.model, "CPU")
 
-    def __call__(self, data, explanation_parameters=None, **kwargs):
+    def __call__(
+            self,
+            data: np.ndarray,
+            explanation_parameters: Optional[ExplanationParameters] = None,
+            **kwargs,
+    ) -> ExplanationResult:
         """Explainer call that generates processed explanation result."""
         if explanation_parameters is None:
             explanation_parameters = ExplanationParameters()
@@ -100,16 +127,21 @@ class Explainer:
         ).postprocess()
         return explanation_result
 
-    def model_forward(self, x) -> ov.utils.data_helpers.wrappers.OVDict:
+    def model_forward(self, x: np.ndarray) -> ov.utils.data_helpers.wrappers.OVDict:
         """Forward pass of the compiled model"""
         x = self.preprocess_fn(x)
         return self.compiled_model(x)
 
-    def _generate_saliency_map_white_box(self, data):
+    def _generate_saliency_map_white_box(self, data: np.ndarray) -> np.ndarray:
         model_output = self.model_forward(data)
         return model_output[SALIENCY_MAP_OUTPUT_NAME]
 
-    def _generate_saliency_map_black_box(self, data, explanation_parameters, **kwargs):
+    def _generate_saliency_map_black_box(
+            self,
+            data: np.ndarray,
+            explanation_parameters: ExplanationParameters,
+            **kwargs,
+    ) -> np.ndarray:
         if self.task_type == TaskType.CLASSIFICATION:
             saliency_map = RISE.run(
                 self.compiled_model,

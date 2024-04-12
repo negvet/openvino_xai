@@ -2,8 +2,6 @@
 # SPDX-License-Identifier: Apache-2.0
 
 from pathlib import Path
-from typing import Tuple
-from functools import partial
 
 import addict
 import cv2
