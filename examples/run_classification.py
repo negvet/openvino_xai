@@ -225,9 +225,7 @@ def explain_white_box_multiple_images(args):
 
 
 def explain_white_box_vit(args):
-    """
-    Vision transformer example.
-    """
+    """Vision transformer example."""
 
     # Create ov.Model
     model: ov.Model
