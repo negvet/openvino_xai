@@ -122,9 +122,9 @@ class Explainer:
             explanation_parameters.label_names,
         )
         explanation_result = PostProcessor(
-            explanation_result,
-            data,
-            explanation_parameters.post_processing_parameters,
+            explanation=explanation_result,
+            data=data,
+            post_processing_parameters=explanation_parameters.post_processing_parameters,
         ).postprocess()
         return explanation_result
 

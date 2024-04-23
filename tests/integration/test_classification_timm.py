@@ -230,9 +230,9 @@ class TestImageClassificationTimm:
             explanation.saliency_map[target_class] = raw_sal_map
             post_processing_parameters = PostProcessParameters(normalize=True, overlay=True)
             post_processor = PostProcessor(
-                explanation,
-                image,
-                post_processing_parameters,
+                explanation=explanation,
+                data=image,
+                post_processing_parameters=post_processing_parameters,
             )
             explanation = post_processor.postprocess()
 
