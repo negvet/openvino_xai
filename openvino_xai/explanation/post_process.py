@@ -17,7 +17,6 @@ from openvino_xai.explanation.explanation_parameters import (
 from openvino_xai.explanation.explanation_result import ExplanationResult
 
 
-# TODO: add unit tests with reference values for each of methods
 def normalize(saliency_map: np.ndarray, cast_to_uint8: bool = True) -> np.ndarray:
     """Normalize saliency maps to [0, 255] range."""
     # TODO: generalize to support single channel map
@@ -113,7 +112,7 @@ class PostProcessor:
     def layout(self, layout: SaliencyMapLayout):
         self._explanation.layout = layout
 
-    def postprocess(self) -> ExplanationResult:
+    def run(self) -> ExplanationResult:
         """
         Saliency map postprocess method.
         Applies some op ordering logic, depending on PostProcessParameters.

@@ -234,7 +234,7 @@ class TestImageClassificationTimm:
                 data=image,
                 post_processing_parameters=post_processing_parameters,
             )
-            explanation = post_processor.postprocess()
+            explanation = post_processor.run()
 
             model_output = explainer.model_forward(image)
             target_confidence = get_score(model_output["logits"], target_class, activation=ActivationType.SOFTMAX)
