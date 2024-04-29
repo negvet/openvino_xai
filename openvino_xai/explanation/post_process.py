@@ -20,14 +20,15 @@ from openvino_xai.explanation.explanation_result import ExplanationResult
 def normalize(saliency_map: np.ndarray, cast_to_uint8: bool = True) -> np.ndarray:
     """Normalize saliency maps to [0, 255] range."""
     # TODO: generalize to support single channel map
-    assert len(saliency_map.shape) == 3
-    n, h, w = saliency_map.shape
-    saliency_map = saliency_map.reshape((n, h * w))
+    if len(saliency_map.shape) != 3:
+        raise ValueError("Normalize supports only three-dimensional saliency map as input.")
+    num_maps, h, w = saliency_map.shape
+    saliency_map = saliency_map.reshape((num_maps, h * w))
     saliency_map = saliency_map.astype(np.float32)
 
     min_values, max_values = get_min_max(saliency_map)
     saliency_map = 255 * (saliency_map - min_values[:, None]) / (max_values - min_values + 1e-12)[:, None]
-    saliency_map = saliency_map.reshape(n, h, w)
+    saliency_map = saliency_map.reshape(num_maps, h, w)
     if cast_to_uint8:
         return saliency_map.astype(np.uint8)
     return saliency_map
