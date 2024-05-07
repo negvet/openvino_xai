@@ -36,7 +36,7 @@ pip install -e .[dev]
 pytest -v -s ./tests/
 
 # Run code quality checks
-pre-commit run -a
+pre-commit run --all-files
 ```
 
 
