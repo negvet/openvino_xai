@@ -10,7 +10,7 @@ the [PEP 8 -- Style Guide for Python Code](https://www.python.org/dev/peps/pep-0
 
 ## 2 Automating Code Formatting
 
-To maintain consistency and readability throughout the codebase, we use a set of tools for formatting. 
+To maintain consistency and readability throughout the codebase, we use a set of tools for formatting.
 Before committing any changes, it's important to run a pre-commit command to ensure that the code is properly formatted.
 You can use the following commands for this:
 
