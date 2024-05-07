@@ -54,8 +54,28 @@ class TestExplainer:
             explain_mode=explain_mode,
         )
 
-        voc_labels = ['aeroplane', 'bicycle', 'bird', 'boat', 'bottle', 'bus', 'car', 'cat', 'chair', 'cow', 'diningtable',
-                  'dog', 'horse', 'motorbike', 'person', 'pottedplant', 'sheep', 'sofa', 'train', 'tvmonitor']
+        voc_labels = [
+            "aeroplane",
+            "bicycle",
+            "bird",
+            "boat",
+            "bottle",
+            "bus",
+            "car",
+            "cat",
+            "chair",
+            "cow",
+            "diningtable",
+            "dog",
+            "horse",
+            "motorbike",
+            "person",
+            "pottedplant",
+            "sheep",
+            "sofa",
+            "train",
+            "tvmonitor",
+        ]
         explanation_parameters = ExplanationParameters(
             target_explain_group=target_explain_group,
             target_explain_labels=[11, 14],

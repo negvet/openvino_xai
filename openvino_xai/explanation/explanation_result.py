@@ -104,9 +104,9 @@ class ExplanationResult:
         return dict_sal_map
 
     def _select_target_saliency_maps(
-            self,
-            target_explain_labels: Optional[List[Union[int, str]]] = None,
-            label_names: Optional[List[str]] = None,
+        self,
+        target_explain_labels: Optional[List[Union[int, str]]] = None,
+        label_names: Optional[List[str]] = None,
     ) -> Dict[Union[int, str], np.ndarray]:
         assert self.layout == SaliencyMapLayout.MULTIPLE_MAPS_PER_IMAGE_GRAY
         explain_target_indices = self._select_target_indices(
@@ -120,10 +120,10 @@ class ExplanationResult:
 
     @staticmethod
     def _select_target_indices(
-            target_explain_group: TargetExplainGroup,
-            target_explain_labels: Optional[List[Union[int, str]]] = None,
-            label_names: Optional[List[str]] = None,
-            total_num_targets: Optional[int] = None,
+        target_explain_group: TargetExplainGroup,
+        target_explain_labels: Optional[List[Union[int, str]]] = None,
+        label_names: Optional[List[str]] = None,
+        total_num_targets: Optional[int] = None,
     ) -> Union[List[int], np.ndarray]:
         explain_target_indices = get_explain_target_indices(target_explain_labels, label_names)
 
@@ -134,7 +134,6 @@ class ExplanationResult:
         if not all(0 <= target_index <= (total_num_targets - 1) for target_index in explain_target_indices):
             raise ValueError(f"All targets explanation indices have to be in range 0..{total_num_targets - 1}.")
         return explain_target_indices
-
 
     def save(self, dir_path: Union[Path, str], name: Optional[str] = None) -> None:
         """Dumps saliency map."""

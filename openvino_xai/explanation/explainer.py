@@ -42,13 +42,13 @@ class Explainer:
     """
 
     def __init__(
-            self,
-            model: ov.Model,
-            task_type: TaskType,
-            preprocess_fn: Callable[[np.ndarray], np.ndarray],
-            postprocess_fn: Callable[[ov.utils.data_helpers.wrappers.OVDict], np.ndarray] = None,
-            explain_mode: ExplainMode = ExplainMode.AUTO,
-            insertion_parameters: Optional[InsertionParameters] = None,
+        self,
+        model: ov.Model,
+        task_type: TaskType,
+        preprocess_fn: Callable[[np.ndarray], np.ndarray],
+        postprocess_fn: Callable[[ov.utils.data_helpers.wrappers.OVDict], np.ndarray] = None,
+        explain_mode: ExplainMode = ExplainMode.AUTO,
+        insertion_parameters: Optional[InsertionParameters] = None,
     ) -> None:
         self.model = model
         self.compiled_model = None
@@ -104,10 +104,10 @@ class Explainer:
         self.compiled_model = ov.Core().compile_model(self.model, "CPU")
 
     def __call__(
-            self,
-            data: np.ndarray,
-            explanation_parameters: ExplanationParameters,
-            **kwargs,
+        self,
+        data: np.ndarray,
+        explanation_parameters: ExplanationParameters,
+        **kwargs,
     ) -> ExplanationResult:
         """Explainer call that generates processed explanation result."""
         if self.explain_mode == ExplainMode.WHITEBOX:
@@ -138,10 +138,10 @@ class Explainer:
         return model_output[SALIENCY_MAP_OUTPUT_NAME]
 
     def _generate_saliency_map_black_box(
-            self,
-            data: np.ndarray,
-            explanation_parameters: ExplanationParameters,
-            **kwargs,
+        self,
+        data: np.ndarray,
+        explanation_parameters: ExplanationParameters,
+        **kwargs,
     ) -> np.ndarray:
         explain_target_indices = None
         if explanation_parameters.target_explain_group == TargetExplainGroup.CUSTOM:

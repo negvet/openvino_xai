@@ -62,7 +62,11 @@ class IRParser:
             return False
         if not (node_out_shape[0].is_dynamic or node_out_shape[0].get_length() == 1):
             return False
-        c, h, w, = (
+        (
+            c,
+            h,
+            w,
+        ) = (
             node_out_shape[1].get_length(),
             node_out_shape[2].get_length(),
             node_out_shape[3].get_length(),
@@ -76,12 +80,18 @@ class IRParser:
         node_out_shape = node.output(output_id).partial_shape
 
         # NCHW
-        h, w, = (
+        (
+            h,
+            w,
+        ) = (
             node_out_shape[2].get_length(),
             node_out_shape[3].get_length(),
         )
         # NHWC
-        h_, w_, = (
+        (
+            h_,
+            w_,
+        ) = (
             node_out_shape[1].get_length(),
             node_out_shape[2].get_length(),
         )
