@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: Apache-2.0
 from enum import Enum
 from functools import partial
-from typing import Optional, Union, List, Tuple, Callable
+from typing import Optional, List, Tuple, Callable
 
 import cv2
 import numpy as np
@@ -10,20 +10,20 @@ import openvino.runtime as ov
 
 
 def get_explain_target_indices(
-    target_explain_labels: Optional[List[Union[int, str]]],
-    label_names: Optional[List[str]] = None,
+    target_explain_labels: List[int | str],
+    label_names: List[str] | None = None,
 ) -> List[int]:
     """
     Returns indices to be explained.
 
     :param target_explain_labels: List of custom labels to explain, optional. Can be list of integer indices (int),
         or list of names (str) from label_names.
-    :type target_explain_labels: Optional[List[Union[int, str]]]
+    :type target_explain_labels: List[int | str]
     :param label_names: List of all label names.
-    :type label_names: Optional[List[str]]
+    :type label_names: List[str] | None
     """
     if isinstance(target_explain_labels[0], int):
-        return target_explain_labels
+        return target_explain_labels  # type: ignore
 
     if not isinstance(target_explain_labels[0], str):
         raise ValueError(f"Explain labels expected to be int or str, but got {type(target_explain_labels[0])}")

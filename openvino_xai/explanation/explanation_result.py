@@ -141,11 +141,11 @@ class ExplanationResult:
         os.makedirs(dir_path, exist_ok=True)
         save_name = f"{name}_" if name else ""
         for i, (cls_idx, map_to_save) in enumerate(self._saliency_map.items()):
-            if cls_idx == "per_image_map":
-                target_name = "per_image_map"
+            if isinstance(cls_idx, str):
+                target_name = cls_idx
             else:
                 if self.label_names:
                     target_name = self.label_names[cls_idx]
                 else:
-                    target_name = cls_idx
+                    target_name = str(cls_idx)
             cv2.imwrite(os.path.join(dir_path, f"{save_name}target_{target_name}.jpg"), img=map_to_save)

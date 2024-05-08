@@ -51,7 +51,7 @@ class Explainer:
         insertion_parameters: Optional[InsertionParameters] = None,
     ) -> None:
         self.model = model
-        self.compiled_model = None
+        self.compiled_model: ov.ie_api.CompiledModel | None = None
         self.task_type = task_type
 
         self.preprocess_fn = preprocess_fn
