@@ -9,7 +9,10 @@ import cv2
 import numpy as np
 
 from openvino_xai.common.utils import logger
-from openvino_xai.explanation.explanation_parameters import TargetExplainGroup, SaliencyMapLayout
+from openvino_xai.explanation.explanation_parameters import (
+    SaliencyMapLayout,
+    TargetExplainGroup,
+)
 from openvino_xai.explanation.utils import get_explain_target_indices
 
 

@@ -4,12 +4,12 @@
 # SPDX-License-Identifier: Apache-2.0
 
 from abc import ABC
-from typing import Optional, Tuple, List, Callable
+from typing import Callable, List, Optional, Tuple
 
 import cv2
 import numpy as np
-from tqdm import tqdm
 import openvino.runtime as ov
+from tqdm import tqdm
 
 
 class BlackBoxXAIMethodBase(ABC):

@@ -1,18 +1,18 @@
 # Copyright (C) 2023 Intel Corporation
 # SPDX-License-Identifier: Apache-2.0
 
-from typing import Tuple, List, Dict
+from typing import Dict, List, Tuple
 
 import cv2
 import numpy as np
 
 from openvino_xai.explanation.explanation_parameters import (
-    PostProcessParameters,
-    SaliencyMapLayout,
-    GRAY_LAYOUTS,
     COLOR_MAPPED_LAYOUTS,
+    GRAY_LAYOUTS,
     MULTIPLE_MAP_LAYOUTS,
     ONE_MAP_LAYOUTS,
+    PostProcessParameters,
+    SaliencyMapLayout,
 )
 from openvino_xai.explanation.explanation_result import ExplanationResult
 

@@ -5,7 +5,6 @@ import pytest
 
 from openvino_xai.explanation.utils import get_explain_target_indices
 
-
 VOC_NAMES = [
     "aeroplane",
     "bicycle",

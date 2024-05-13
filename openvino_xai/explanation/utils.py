@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: Apache-2.0
 from enum import Enum
 from functools import partial
-from typing import Optional, List, Tuple, Callable
+from typing import Callable, List, Optional, Tuple
 
 import cv2
 import numpy as np

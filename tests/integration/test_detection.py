@@ -6,25 +6,27 @@ from pathlib import Path
 import addict
 import cv2
 import numpy as np
-import pytest
-
 import openvino
 import openvino.runtime as ov
+import pytest
 
-from openvino_xai.algorithms.white_box.create_method import create_white_box_detection_explain_method
-from openvino_xai.algorithms.white_box.white_box_methods import DetClassProbabilityMapXAIMethod
-from openvino_xai.common.parameters import XAIMethodType, TaskType
+from openvino_xai.algorithms.white_box.create_method import (
+    create_white_box_detection_explain_method,
+)
+from openvino_xai.algorithms.white_box.white_box_methods import (
+    DetClassProbabilityMapXAIMethod,
+)
+from openvino_xai.common.parameters import TaskType, XAIMethodType
 from openvino_xai.common.utils import retrieve_otx_model
-from openvino_xai.explanation.explainer import Explainer
+from openvino_xai.explanation.explain import Explainer
 from openvino_xai.explanation.explanation_parameters import (
+    ExplainMode,
+    ExplanationParameters,
     PostProcessParameters,
     TargetExplainGroup,
-    ExplanationParameters,
-    ExplainMode,
 )
 from openvino_xai.explanation.utils import get_preprocess_fn
 from openvino_xai.insertion.insertion_parameters import DetectionInsertionParameters
-
 
 MODEL_CONFIGS = addict.Addict(
     {

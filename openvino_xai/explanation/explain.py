@@ -4,20 +4,18 @@
 from typing import Callable, Optional
 
 import numpy as np
-
 import openvino.runtime as ov
 
 import openvino_xai
 from openvino_xai.algorithms.black_box.black_box_methods import RISE
 from openvino_xai.common.parameters import TaskType
-from openvino_xai.common.utils import has_xai
-from openvino_xai.common.utils import logger, SALIENCY_MAP_OUTPUT_NAME
-from openvino_xai.explanation.explanation_parameters import ExplanationParameters, TargetExplainGroup
+from openvino_xai.common.utils import SALIENCY_MAP_OUTPUT_NAME, has_xai, logger
+from openvino_xai.explanation.explanation_parameters import (
+    ExplainMode, ExplanationParameters, TargetExplainGroup)
 from openvino_xai.explanation.explanation_result import ExplanationResult
 from openvino_xai.explanation.post_process import PostProcessor
-from openvino_xai.explanation.explanation_parameters import ExplainMode
 from openvino_xai.explanation.utils import get_explain_target_indices
-from openvino_xai.insertion import InsertionParameters
+from openvino_xai.insertion.insertion_parameters import InsertionParameters
 
 
 class Explainer:
