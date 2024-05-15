@@ -3,14 +3,15 @@
 
 import numpy as np
 
-from openvino_xai.explanation import colormap, get_min_max, normalize, overlay, resize
+from openvino_xai.explanation import colormap, overlay, resize
+from openvino_xai.common.utils import get_min_max, normalize_fn
 
 
 def test_normalize_3d():
     # Test normalization on a multi-channel input
     input_saliency_map = (np.random.rand(3, 5, 5) - 0.5) * 1000
     assert (input_saliency_map < 0).any() and (input_saliency_map > 255).any()
-    normalized_map = normalize(input_saliency_map)
+    normalized_map = normalize_fn(input_saliency_map)
     assert (normalized_map >= 0).all() and (normalized_map <= 255).all()
 
 
@@ -18,18 +19,18 @@ def test_normalize_2d():
     # Test normalization on a simple 2D input
     input_saliency_map = (np.random.rand(5, 5) - 0.5) * 1000
     assert (input_saliency_map < 0).any() and (input_saliency_map > 255).any()
-    normalized_map = normalize(input_saliency_map)
+    normalized_map = normalize_fn(input_saliency_map)
     assert (normalized_map >= 0).all() and (normalized_map <= 255).all()
 
 
 def test_normalize_cast_to_int8():
     # Test if output is correctly cast to uint8
     input_saliency_map = (np.random.rand(3, 5, 5) - 0.5) * 1000
-    normalized_map = normalize(input_saliency_map)
+    normalized_map = normalize_fn(input_saliency_map)
     assert normalized_map.dtype == np.uint8
 
     input_saliency_map = (np.random.rand(3, 5, 5) - 0.5) * 1000
-    normalized_map = normalize(input_saliency_map, cast_to_uint8=False)
+    normalized_map = normalize_fn(input_saliency_map, cast_to_uint8=False)
     assert normalized_map.dtype == np.float32
 
 
