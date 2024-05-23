@@ -4,8 +4,8 @@
 import numpy as np
 import pytest
 
-from openvino_xai.explanation import colormap, overlay, resize
 from openvino_xai.common.utils import get_min_max, normalize_fn
+from openvino_xai.explanation import colormap, overlay, resize
 from openvino_xai.explanation.explanation_parameters import (
     PostProcessParameters,
     TargetExplainGroup,

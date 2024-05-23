@@ -89,7 +89,9 @@ class TestClsWB:
             TargetExplainGroup.CUSTOM,
         ],
     )
-    def test_vitreciprocam(self, embed_normalization: bool, target_explain_group: TargetExplainGroup | TargetExplainGroup):
+    def test_vitreciprocam(
+        self, embed_normalization: bool, target_explain_group: TargetExplainGroup | TargetExplainGroup
+    ):
         model_name = "deit-tiny"
         retrieve_otx_model(self.data_dir, model_name)
         model_path = self.data_dir / "otx_models" / (model_name + ".xml")
@@ -103,7 +105,7 @@ class TestClsWB:
         explainer = Explainer(
             model=model,
             task_type=TaskType.CLASSIFICATION,
-            preprocess_fn=self.preprocess_fn,
+            preprocess_fn=self.preprocess_fn,  # type: ignore
             explain_mode=ExplainMode.WHITEBOX,
             insertion_parameters=insertion_parameters,
         )
@@ -147,7 +149,9 @@ class TestClsWB:
             TargetExplainGroup.CUSTOM,
         ],
     )
-    def test_reciprocam(self, model_name: str, embed_normalization: bool, target_explain_group: TargetExplainGroup | TargetExplainGroup):
+    def test_reciprocam(
+        self, model_name: str, embed_normalization: bool, target_explain_group: TargetExplainGroup | TargetExplainGroup
+    ):
         retrieve_otx_model(self.data_dir, model_name)
         model_path = self.data_dir / "otx_models" / (model_name + ".xml")
         model = ov.Core().read_model(model_path)
@@ -159,7 +163,7 @@ class TestClsWB:
         explainer = Explainer(
             model=model,
             task_type=TaskType.CLASSIFICATION,
-            preprocess_fn=self.preprocess_fn,
+            preprocess_fn=self.preprocess_fn,  # type: ignore
             explain_mode=ExplainMode.WHITEBOX,
             insertion_parameters=insertion_parameters,
         )
@@ -212,7 +216,7 @@ class TestClsWB:
         explainer = Explainer(
             model=model,
             task_type=TaskType.CLASSIFICATION,
-            preprocess_fn=self.preprocess_fn,
+            preprocess_fn=self.preprocess_fn,  # type: ignore
             explain_mode=ExplainMode.WHITEBOX,
             insertion_parameters=insertion_parameters,
         )
@@ -238,7 +242,9 @@ class TestClsWB:
         ],
     )
     @pytest.mark.parametrize("overlay", [True, False])
-    def test_classification_postprocessing(self, target_explain_group: TargetExplainGroup | TargetExplainGroup, overlay: bool):
+    def test_classification_postprocessing(
+        self, target_explain_group: TargetExplainGroup | TargetExplainGroup, overlay: bool
+    ):
         retrieve_otx_model(self.data_dir, DEFAULT_CLS_MODEL)
         model_path = self.data_dir / "otx_models" / (DEFAULT_CLS_MODEL + ".xml")
         model = ov.Core().read_model(model_path)
@@ -246,7 +252,7 @@ class TestClsWB:
         explainer = Explainer(
             model=model,
             task_type=TaskType.CLASSIFICATION,
-            preprocess_fn=self.preprocess_fn,
+            preprocess_fn=self.preprocess_fn,  # type: ignore
             explain_mode=ExplainMode.WHITEBOX,
         )
 
@@ -257,7 +263,7 @@ class TestClsWB:
 
         explanation_parameters = ExplanationParameters(
             target_explain_group=target_explain_group,
-            target_explain_labels=explain_targets,
+            target_explain_labels=explain_targets,  # type: ignore
             post_processing_parameters=post_processing_parameters,
         )
         explanation = explainer(self.image, explanation_parameters)
@@ -325,7 +331,13 @@ class TestClsBB:
         ],
     )
     @pytest.mark.parametrize("normalize", [True, False])
-    def test_classification_black_box_postprocessing(self, model_name: str, overlay: bool, target_explain_group: TargetExplainGroup | TargetExplainGroup, normalize: bool):
+    def test_classification_black_box_postprocessing(
+        self,
+        model_name: str,
+        overlay: bool,
+        target_explain_group: TargetExplainGroup | TargetExplainGroup,
+        normalize: bool,
+    ):
         retrieve_otx_model(self.data_dir, model_name)
         model_path = self.data_dir / "otx_models" / (model_name + ".xml")
         model = ov.Core().read_model(model_path)
@@ -333,8 +345,8 @@ class TestClsBB:
         explainer = Explainer(
             model=model,
             task_type=TaskType.CLASSIFICATION,
-            preprocess_fn=self.preprocess_fn,
-            postprocess_fn=get_postprocess_fn(),
+            preprocess_fn=self.preprocess_fn,  # type: ignore
+            postprocess_fn=get_postprocess_fn(),  # type: ignore
             explain_mode=ExplainMode.BLACKBOX,
         )
 

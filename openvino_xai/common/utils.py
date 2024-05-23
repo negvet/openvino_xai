@@ -3,15 +3,13 @@
 """
 Common functionality.
 """
-from typing import Tuple
-
 import logging
 import os
 from pathlib import Path
+from typing import Tuple
 from urllib.request import urlretrieve
 
 import numpy as np
-
 import openvino.runtime as ov
 
 logger = logging.getLogger("openvino_xai")

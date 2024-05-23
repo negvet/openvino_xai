@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: Apache-2.0
 
 from pathlib import Path
+
 import cv2
 import numpy as np
 import openvino.runtime as ov
@@ -29,7 +30,7 @@ class TestRISE:
         model_path = self.data_dir / "otx_models" / (DEFAULT_CLS_MODEL + ".xml")
         model = ov.Core().read_model(model_path)
         compiled_model = ov.Core().compile_model(model, "CPU")
-        
+
         saliency_map = RISE.run(
             compiled_model,
             self.preprocess_fn,

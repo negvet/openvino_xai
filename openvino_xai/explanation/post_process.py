@@ -6,6 +6,7 @@ from typing import Dict, List, Tuple
 import cv2
 import numpy as np
 
+from openvino_xai.common.utils import normalize_fn
 from openvino_xai.explanation.explanation_parameters import (
     COLOR_MAPPED_LAYOUTS,
     GRAY_LAYOUTS,
@@ -15,7 +16,6 @@ from openvino_xai.explanation.explanation_parameters import (
     SaliencyMapLayout,
 )
 from openvino_xai.explanation.explanation_result import ExplanationResult
-from openvino_xai.common.utils import normalize_fn
 
 
 def resize(saliency_map: np.ndarray, output_size: Tuple[int, int]) -> np.ndarray:

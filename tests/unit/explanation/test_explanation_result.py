@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: Apache-2.0
 
 import os
+
 import numpy as np
 
 from openvino_xai.explanation import TargetExplainGroup
@@ -34,7 +35,7 @@ class TestExplanationResult:
         sm_names = explanation_result_names.saliency_map
         assert len(sm_indices) == len(sm_names)
         assert set(sm_indices.keys()) == set(sm_names.keys()) == {0, 2}
-    
+
     def test_target_explain_group_image(self):
         explanation_result = ExplanationResult(
             SALIENCY_MAPS_IMAGE,

@@ -18,13 +18,10 @@ from tests.integration.test_classification import DEFAULT_CLS_MODEL
 from tests.integration.test_detection import DEFAULT_DET_MODEL
 
 
-
 class TestActivationMap:
     """Test for ActivationMapXAIMethod."""
 
-    _ref_sal_maps = {
-        DEFAULT_CLS_MODEL: np.array([32, 12, 34, 47, 36,  0, 42], dtype=np.int16)
-    }
+    _ref_sal_maps = {DEFAULT_CLS_MODEL: np.array([32, 12, 34, 47, 36, 0, 42], dtype=np.int16)}
 
     @pytest.fixture(autouse=True)
     def setUp(self) -> None:
@@ -35,7 +32,7 @@ class TestActivationMap:
         model_path = data_dir / "otx_models" / (self.model_name + ".xml")
         self.model = ov.Core().read_model(model_path)
         self.target_layer = None
-    
+
     def test_initialization(self):
         """Test ActivationMapXAIMethod is created properly."""
 
@@ -84,9 +81,7 @@ class TestActivationMap:
 class TestReciproCAM:
     """Test for ReciproCAMXAIMethod."""
 
-    _ref_sal_maps = {
-        DEFAULT_CLS_MODEL: np.array([113, 71, 92, 101, 81, 56, 81], dtype=np.int16)
-    }
+    _ref_sal_maps = {DEFAULT_CLS_MODEL: np.array([113, 71, 92, 101, 81, 56, 81], dtype=np.int16)}
 
     @pytest.fixture(autouse=True)
     def setUp(self) -> None:
@@ -97,7 +92,7 @@ class TestReciproCAM:
         model_path = data_dir / "otx_models" / (self.model_name + ".xml")
         self.model = ov.Core().read_model(model_path)
         self.target_layer = None
-    
+
     def test_initialization(self):
         """Test ReciproCAMXAIMethod is created properly."""
 
@@ -146,9 +141,7 @@ class TestReciproCAM:
 class TestViTReciproCAM:
     """Test for ViTReciproCAMXAIMethod."""
 
-    _ref_sal_maps = {
-        "deit-tiny": np.array([110, 75,  47,  47,  51,  56,  62,  64,  62,  61], dtype=np.int16)
-    }
+    _ref_sal_maps = {"deit-tiny": np.array([110, 75, 47, 47, 51, 56, 62, 64, 62, 61], dtype=np.int16)}
 
     @pytest.fixture(autouse=True)
     def setUp(self) -> None:
@@ -159,7 +152,7 @@ class TestViTReciproCAM:
         model_path = data_dir / "otx_models" / (self.model_name + ".xml")
         self.model = ov.Core().read_model(model_path)
         self.target_layer = None
-    
+
     def test_initialization(self):
         """Test ViTReciproCAMXAIMethod is created properly."""
 

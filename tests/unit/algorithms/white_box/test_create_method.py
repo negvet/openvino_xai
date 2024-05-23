@@ -2,17 +2,26 @@
 # SPDX-License-Identifier: Apache-2.0
 
 from pathlib import Path
+
 import openvino.runtime as ov
 import pytest
 
-from openvino_xai.algorithms.white_box.white_box_methods import ActivationMapXAIMethod, DetClassProbabilityMapXAIMethod, ReciproCAMXAIMethod, ViTReciproCAMXAIMethod
-from openvino_xai.common.parameters import XAIMethodType
 from openvino_xai.algorithms.white_box.create_method import (
     create_white_box_classification_explain_method,
     create_white_box_detection_explain_method,
 )
+from openvino_xai.algorithms.white_box.white_box_methods import (
+    ActivationMapXAIMethod,
+    DetClassProbabilityMapXAIMethod,
+    ReciproCAMXAIMethod,
+    ViTReciproCAMXAIMethod,
+)
+from openvino_xai.common.parameters import XAIMethodType
 from openvino_xai.common.utils import retrieve_otx_model
-from openvino_xai.insertion.insertion_parameters import ClassificationInsertionParameters, DetectionInsertionParameters
+from openvino_xai.insertion.insertion_parameters import (
+    ClassificationInsertionParameters,
+    DetectionInsertionParameters,
+)
 from tests.integration.test_classification import DEFAULT_CLS_MODEL
 from tests.integration.test_detection import DEFAULT_DET_MODEL, MODEL_CONFIGS
 

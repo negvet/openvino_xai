@@ -1,9 +1,10 @@
 # Copyright (C) 2024 Intel Corporation
 # SPDX-License-Identifier: Apache-2.0
 
+from pathlib import Path
+
 import openvino.runtime as ov
 
-from pathlib import Path
 from openvino_xai.common.parameters import TaskType
 from openvino_xai.common.utils import has_xai, retrieve_otx_model
 from openvino_xai.insertion.insert_xai_into_model import insert_xai

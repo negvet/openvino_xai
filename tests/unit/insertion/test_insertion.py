@@ -28,7 +28,7 @@ def test_insertion_classification(model_name):
     assert has_xai(model_with_xai), "Updated IR model should has XAI head."
 
 
-def test_insertion_classification():
+def test_insertion_detection():
     retrieve_otx_model(DATA_DIR, DEFAULT_DET_MODEL)
     model_path = DATA_DIR / "otx_models" / (DEFAULT_DET_MODEL + ".xml")
     model = ov.Core().read_model(model_path)
