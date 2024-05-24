@@ -366,7 +366,7 @@ class TestClsBB:
                 self.image,
                 explanation_parameters,
                 num_masks=5,
-                normalize=normalize,
+                normalize_output=normalize,
             )
 
             assert explanation is not None
@@ -386,7 +386,7 @@ class TestClsBB:
                 self.image,
                 explanation_parameters,
                 num_masks=5,
-                normalize=normalize,
+                normalize_output=normalize,
             )
 
             assert explanation is not None

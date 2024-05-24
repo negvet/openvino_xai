@@ -6,7 +6,7 @@ from typing import Dict, List, Tuple
 import cv2
 import numpy as np
 
-from openvino_xai.common.utils import normalize_fn
+from openvino_xai.common.utils import normalize
 from openvino_xai.explanation.explanation_parameters import (
     COLOR_MAPPED_LAYOUTS,
     GRAY_LAYOUTS,
@@ -126,7 +126,7 @@ class PostProcessor:
                 f"Saliency map to normalize has to be grayscale. The layout must be in {GRAY_LAYOUTS}, "
                 f"but got {self.layout}."
             )
-        self._saliency_map_np = normalize_fn(self._saliency_map_np)
+        self._saliency_map_np = normalize(self._saliency_map_np)
 
     def _apply_resize(self) -> None:
         # TODO: support resize of colormapped images.

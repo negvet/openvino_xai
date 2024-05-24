@@ -9,7 +9,7 @@ import numpy as np
 import openvino.runtime as ov
 from tqdm import tqdm
 
-from openvino_xai.common.utils import normalize_fn
+from openvino_xai.common.utils import normalize
 
 
 class BlackBoxXAIMethodBase(ABC):
@@ -31,7 +31,7 @@ class RISE(BlackBoxXAIMethodBase):
         num_cells: int = 8,
         prob: float = 0.5,
         seed: int = 0,
-        normalize: bool = True,
+        normalize_output: bool = True,
     ):
         """
         Generates inference result of the RISE algorithm.
@@ -56,8 +56,8 @@ class RISE(BlackBoxXAIMethodBase):
         :type prob: float
         :param seed: Seed for random mask generation.
         :type seed: int
-        :param normalize: Whether to normalize output or not.
-        :type normalize: bool
+        :param normalize_output: Whether to normalize_output output or not.
+        :type normalize_output: bool
         """
         data_preprocessed = preprocess_fn(data)
 
@@ -72,8 +72,8 @@ class RISE(BlackBoxXAIMethodBase):
             seed,
         )
 
-        if normalize:
-            saliency_maps = normalize_fn(saliency_maps)
+        if normalize_output:
+            saliency_maps = normalize(saliency_maps)
         saliency_maps = np.expand_dims(saliency_maps, axis=0)
         return saliency_maps
 

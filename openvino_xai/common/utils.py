@@ -56,7 +56,7 @@ def retrieve_otx_model(data_dir: str | Path, model_name: str, dir_url=None) -> N
             )
 
 
-def normalize_fn(saliency_map: np.ndarray, cast_to_uint8: bool = True) -> np.ndarray:
+def normalize(saliency_map: np.ndarray, cast_to_uint8: bool = True) -> np.ndarray:
     """Normalize saliency maps to [0, 255] range."""
     original_num_dims = saliency_map.shape
     if len(original_num_dims) == 2:
