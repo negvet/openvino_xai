@@ -34,7 +34,6 @@ dev = [
   "pytest",
   "pre-commit==3.7.0",
   "addict",
-  "coverage",
 ]
 dev_timm = [
   "timm==0.9.5",
