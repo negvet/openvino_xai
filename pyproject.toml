@@ -21,8 +21,9 @@ authors = [
 maintainers = [
   {name = "Intel(R) Corporation"},
 ]
-description = "OV XAI: a toolbox for explaining models in OpenVINO format"
+description = "OpenVINO XAI: a toolbox for explaining models in OpenVINO format"
 readme = "README.md"
+license = {file = "LICENSE"}
 keywords = ["pytorch", "cnn", "transformer", "xai", "black-box"]
 classifiers = [
   "License :: OSI Approved :: MIT Apache Software License",
@@ -32,6 +33,7 @@ classifiers = [
 [project.optional-dependencies]
 dev = [
   "pytest",
+  "pytest-cov",
   "pre-commit==3.7.0",
   "addict",
 ]
@@ -50,3 +52,19 @@ include = ["openvino_xai*"]
 
 [tool.black]
 line-length = 120
+
+[tool.coverage.paths]
+source = [
+    "openvino_xai",
+]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "if TYPE_CHECKING:",
+]
+
+[tool.coverage.run]
+omit = [
+    "**/__init__.py",
+]
