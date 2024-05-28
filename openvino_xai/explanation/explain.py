@@ -37,7 +37,8 @@ class Explainer:
     :type model: ov.Model
     :param task_type: Type of the task.
     :type task_type: TaskType
-    :param preprocess_fn: Preprocessing function, identity by default (assume input is already preprocessed).
+    :param preprocess_fn: Preprocessing function, identity function by default
+        (assume input images are already preprocessed by user).
     :type preprocess_fn: Callable[[np.ndarray], np.ndarray] | IdentityPreprocessFN
     :param postprocess_fn: Postprocessing functions, required for black-box.
     :type postprocess_fn: Callable[[ov.utils.data_helpers.wrappers.OVDict], np.ndarray]
@@ -51,7 +52,7 @@ class Explainer:
         self,
         model: ov.Model,
         task_type: TaskType,
-        preprocess_fn: Callable[[np.ndarray], np.ndarray] | IdentityPreprocessFN = IdentityPreprocessFN(),
+        preprocess_fn: Callable[[np.ndarray], np.ndarray] = IdentityPreprocessFN(),
         postprocess_fn: Callable[[ov.utils.data_helpers.wrappers.OVDict], np.ndarray] = None,
         explain_mode: ExplainMode = ExplainMode.AUTO,
         insertion_parameters: InsertionParameters | None = None,
@@ -62,7 +63,9 @@ class Explainer:
 
         if isinstance(preprocess_fn, IdentityPreprocessFN):
             logger.info(
-                "Assigning preprocess_fn to identity function assumes that input is already preprocessed for the model."
+                "Assigning preprocess_fn to identity function assumes that input images were already preprocessed "
+                "by user before passing it to the model. "
+                "Please define preprocessing function OR preprocess images beforehand."
             )
         self.preprocess_fn = preprocess_fn
         self.postprocess_fn = postprocess_fn
@@ -120,6 +123,7 @@ class Explainer:
         **kwargs,
     ) -> ExplanationResult:
         """Explainer call that generates processed explanation result."""
+        # TODO (negvet): support output_shape as argument among other post process parameters
         if self.explain_mode == ExplainMode.WHITEBOX:
             saliency_map = self._generate_saliency_map_white_box(data)
         else:
