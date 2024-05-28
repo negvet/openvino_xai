@@ -56,7 +56,7 @@ class RISE(BlackBoxXAIMethodBase):
         :type prob: float
         :param seed: Seed for random mask generation.
         :type seed: int
-        :param scale_output: Whether to scale_output output or not.
+        :param scale_output: Whether to scale output or not.
         :type scale_output: bool
         """
         data_preprocessed = preprocess_fn(data)
