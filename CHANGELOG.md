@@ -5,9 +5,10 @@
 ### Summary
 
 * Support generation of classification and detection per-class and per-image saliency maps
-* Enable white-box (ReciproCAM) and black-box (RISE) eXplainable AI algorithms
-* Support CNN and transformer-based architectures (validation on diverse set of timm models)
+* Enable White-Box ([ReciproCAM](https://arxiv.org/abs/2209.14074)) and Black-Box ([RISE](https://arxiv.org/abs/1806.07421v3)) eXplainable AI algorithms
+* Support CNNs and Transformer-based architectures (validation on diverse set of timm models)
 * Enable Explainer (stateful object) as the main interface for XAI algorithms
+* Support `AUTO` mode by default to detect the best XAI method for given models
 * Expose `insert_xai` functional API to support XAI head insertion for OpenVINO IR models
 
 ### What's Changed

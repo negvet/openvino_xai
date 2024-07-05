@@ -1,17 +1,83 @@
+<div align="center">
+
 # OpenVINO™ Explainable AI Toolkit - OpenVINO XAI
 
-![OpenVINO XAI Concept](docs/images/ovxai-concept.svg)
+---
+
+[Features](#features) •
+[Install](#installation) •
+[Quick Start](#quick-start) •
+[License](#license) •
+[Documentation](https://openvinotoolkit.github.io/openvino_xai/releases/1.0.0)
+
+![Python](https://img.shields.io/badge/python-3.10%2B-green)
+[![OpenVINO](https://img.shields.io/badge/openvino-2024.2-purple)](https://pypi.org/project/openvino/)
+[![codecov](https://codecov.io/gh/openvinotoolkit/openvino_xai/graph/badge.svg?token=NR0Z0CWDK9)](https://codecov.io/gh/openvinotoolkit/openvino_xai)
+[![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
+[![PyPI](https://img.shields.io/pypi/v/openvino_xai)](https://pypi.org/project/openvino_xai)
+[![Downloads](https://static.pepy.tech/badge/openvino_xai)](https://pepy.tech/project/openvino_xai)
+
+---
+
+</div>
+
+![OpenVINO XAI Concept](docs/source/_static/ovxai-concept.svg)
 
 **OpenVINO™ Explainable AI (XAI) Toolkit** provides a suite of XAI algorithms for visual explanation of
-[OpenVINO™](https://github.com/openvinotoolkit/openvino) Intermediate Representation (IR) models.
+[**OpenVINO™**](https://github.com/openvinotoolkit/openvino) Intermediate Representation (IR) models.
 
-## Documentation
+Given **OpenVINO** models and input images, **OpenVINO XAI** generates **saliency maps**
+which highlights regions of the interest in the inputs from the models' perspective
+to help users understand the reason why the complex AI models output such responses.
 
-OpenVINO XAI API documentation can be found [here](https://openvinotoolkit.github.io/openvino_xai/).
+---
+
+## Features
+
+### What's new in v1.0.0
+
+* Support generation of classification and detection per-class and per-image saliency maps
+* Enable White-Box ([ReciproCAM](https://arxiv.org/abs/2209.14074)) and Black-Box ([RISE](https://arxiv.org/abs/1806.07421v3)) eXplainable AI algorithms
+* Support CNNs and Transformer-based architectures (validation on diverse set of [timm](https://github.com/huggingface/pytorch-image-models) models)
+* Enable `Explainer` (stateful object) as the main interface for XAI algorithms
+* Support `AUTO` mode by default to detect the best XAI method for given models
+* Expose `insert_xai` functional API to support XAI head insertion for OpenVINO IR models
+
+Please refer to the [change logs](CHANGELOG.md) for the full release history.
+
+### Supported XAI methods
+
+At the moment, *Image Classification* and *Object Detection* tasks are supported for the *Computer Vision* domain.
+*Black-Box* (model agnostic but slow) methods and *White-Box* (model specific but fast) methods are supported:
+
+| Domain          | Task                 | Type      | Algorithm           | Links |
+|-----------------|----------------------|-----------|---------------------|-------|
+| Computer Vision | Image Classification | White-Box | ReciproCAM          | [arxiv](https://arxiv.org/abs/2209.14074) / [src](openvino_xai/methods/white_box/recipro_cam.py) |
+|                 |                      |           | VITReciproCAM       | [arxiv](https://arxiv.org/abs/2310.02588) / [src](openvino_xai/methods/white_box/recipro_cam.py) |
+|                 |                      |           | ActivationMap       | experimental / [src](openvino_xai/methods/white_box/activation_map.py) |
+|                 |                      | Black-Box | RISE                | [arxiv](https://arxiv.org/abs/1806.07421v3) / [src](openvino_xai/methods/black_box/rise.py) |
+|                 | Object Detection     | White-Box | ClassProbabilityMap | experimental / [src](openvino_xai/methods/white_box/det_class_probability_map.py) |
+
+### Supported explainable models
+
+Most of CNNs and Transformer models from [Pytorch Image Models (timm)](https://github.com/huggingface/pytorch-image-models) are supported and validated.
+
+Please refer to the following known issues for unsupported models and reasons.
+
+* [OpenVINO IR branch insertion not working for models converted directly from torch models with OVC (#26)](https://github.com/openvinotoolkit/openvino_xai/issues/26)
+* [Runtime error from ONNX / OpenVINO IR models while conversion or inference for XAI (#29)](https://github.com/openvinotoolkit/openvino_xai/issues/29)
+* [Models not supported by white box XAI methods (#30)](https://github.com/openvinotoolkit/openvino_xai/issues/30)
+
+> **_NOTE:_**  GenAI / LLMs would be also supported incrementally in the upcoming releases.
+
+---
 
 ## Installation
 
-- Set up an isolated python environment for python 3.10 and higher:
+> **_NOTE:_**  OpenVINO XAI works on Python 3.10 or higher
+
+<details>
+<summary>Set up environment</summary>
 
 ```bash
 # Create virtual env.
@@ -20,97 +86,115 @@ python3.10 -m venv .ovxai
 # Activate virtual env.
 source .ovxai/bin/activate
 ```
+</details>
 
-- Package installation:
+Install from PyPI package
 
 ```bash
-# Package mode (for normal use):
-pip install .
+# Base package (for normal use):
+pip install openvino_xai
+
+# Dev package (for development):
+pip install openvino_xai[dev]
+```
+
+<details>
+<summary>Install from source</summary>
+
+```bash
+# Clone the source repository
+git clone https://github.com/openvinotoolkit/openvino_xai.git
+cd openvino_xai
 
 # Editable mode (for development):
 pip install -e .[dev]
 ```
+</details>
 
-- Verification:
+<details>
+<summary>Verify installation</summary>
 
 ```bash
 # Run tests
-pytest -v -s ./tests/
+pytest -v -s ./tests/unit
 
 # Run code quality checks
 pre-commit run --all-files
 ```
+</details>
 
+---
 
-## Usage
+## Quick Start
 
-To explain [OpenVINO™](https://github.com/openvinotoolkit/openvino) Intermediate Representation (IR) you only need
-preprocessing function (and sometimes postprocessing).
+### Hello, OpenVINO XAI
 
-```python
-explainer = xai.Explainer(
-    model,
-    task=xai.Task.CLASSIFICATION,
-    preprocess_fn=preprocess_fn,
-)
-explanation = explainer(data, explanation_parameters)
-```
+Let's imagine the case that our OpenVINO IR model is up and running on a inference pipeline.
+While watching the outputs, we may want to analyze the model's behavior for debugging or understanding purposes.
 
-By default the model will be explained using `auto mode`.
-Under the hood of the `auto mode`: will try to run `white-box mode`, if fails => will run `black-box mode`.
-
-![Auto mode process](docs/images/auto_explain_mode.jpg)
-
-Generating saliency maps involves model inference. Explainer will perform model inference.
-To infer, `preprocess_fn` and `postprocess_fn` are requested from the user.
-`preprocess_fn` is always required, `postprocess_fn` is required only for black-box.
+By using the **OpenVINO XAI** `Explainer`, we can visualize why the model gives such responses.
+In this example, we are trying to know the reason why the model outputs a `cheetah` label for the given input image.
 
 ```python
 import cv2
 import numpy as np
 import openvino.runtime as ov
-
 import openvino_xai as xai
-from openvino_xai.explainer.explanation_parameters import ExplanationParameters
 
+# Load the model
+ov_model: ov.Model = ov.Core().read_model("mobilenet_v3.xml")
 
-def preprocess_fn(x: np.ndarray) -> np.ndarray:
-    # Implementing own pre-process function based on model's implementation
-    x = cv2.resize(src=x, dsize=(224, 224))
-    x = np.expand_dims(x, 0)
-    return x
+# Load the image to be analyzed
+image: np.ndarray = cv2.imread("tests/assets/cheetah_person.jpg")
+image = cv2.resize(image, dsize=(224, 224))
+image = np.expand_dims(image, 0)
 
-
-# Creating model
-model = ov.Core().read_model("path/to/model.xml")  # type: ov.Model
-
-# Explainer object will prepare and load the model once in the beginning
+# Create the Explainer object
 explainer = xai.Explainer(
-    model,
+    model=ov_model,
     task=xai.Task.CLASSIFICATION,
-    preprocess_fn=preprocess_fn,
 )
 
-# Generate and process saliency maps (as many as required, sequentially)
-image = cv2.imread("path/to/image.jpg")
-explanation_parameters = ExplanationParameters(
-    target_explain_labels=[11, 14],  # indices or string labels to explain
+# Generate saliency map for the label of interest
+explanation: xai.Explanation = explainer(
+    data=image,
+    targets=293,  # (cheetah), accepts label indices or actual label names if label_names provided
+    overlay=True,  # saliency map overlay over the input image, defaults to False
 )
-explanation = explainer(image, explanation_parameters)
 
-explanation: Explanation
-explanation.saliency_map: Dict[int: np.ndarray]  # key - class id, value - processed saliency map e.g. 354x500x3
-
-# Saving saliency maps
-explanation.save("output_path", "name")
+# Save saliency maps to output directory
+explanation.save(dir_path="./output")
 ```
 
-See more usage scenarios in [user-guide.md](docs/source/user-guide.md) and [examples](./examples).
+Original image | Explained image
+---------------|----------------
+![Oringinal images](tests/assets/cheetah_person.jpg) | ![Explained image](docs/source/_static/xai-cheetah.png)
 
-### Running example scripts
+We can see that model is focusing on the body or skin area of the animals to tell if this image contains actual cheetahs.
 
-```python
-# Retrieve OTX models by running tests
+### More advanced use-cases
+
+Users could tweak the basic use-case according to their purpose, which include but not limited to:
+
+* Select XAI mode (White-Box or Black-Box) or even specific method which are automatically decided by default
+* Provide custom model pre/post processing functions like resize and normalizations which the model expects
+* Customize output image visualization options
+* Explain multiple class targets, passing them as label indices or as actual label names
+* Call explainer multiple times to explain multiple images or to use different targets
+* Using `insert_xai` API, insert XAI head to your OpenVINO IR model and get additional saliency map output in the same inference pipeline
+
+Please find more options and scenarios in the following links:
+
+* [OpenVINO XAI User Guide](docs/source/user-guide.md)
+* (TBD) [OpenVINO Notebook - XAI Basic](n/a)
+* (TBD) [OpenVINO Notebook - XAI Deep Dive](n/a)
+
+### Playing with the examples
+
+Please look around the runnable [example scripts](./examples) and play with them to get used to the `Explainer` APIs.
+
+```bash
+# Prepare models by running tests (need "pip install openvino_xai[dev]" extra option)
 # Models are downloaded and stored in .data/otx_models
 pytest tests/test_classification.py
 
@@ -120,28 +204,33 @@ python examples/run_classification.py .data/otx_models/mlc_mobilenetv3_large_voc
 tests/assets/cheetah_person.jpg --output output
 ```
 
-## Scope of explained models
+---
 
-Models from [Pytorch Image Models (timm)](https://github.com/huggingface/pytorch-image-models) are used
-for classification benchmark.
+## Contributing
 
-### White-box (fast, model-dependent)
+For those who would like to contribute to the library, please refer to the [contribution guide](CONTRIBUTING.md) for details.
 
-#### Classification
+Please let us know via the [Issues tab](https://github.com/openvinotoolkit/openvino_xai/issues/new) if you have any issues, feature requests, or questions.
 
-We benchmarked white-box explanation (using ReciproCAM explain method) using 528 models.
-Currently, we support only CNN-based architectures in white-box mode,
-transformers will be supported in the upcoming weeks.
+Thank you! We appreciate your support!
 
-For more details (statistic, model list, samples of generated saliency maps) see
-[#20](https://github.com/openvinotoolkit/openvino_xai/pull/20).
+<a href="https://github.com/openvinotoolkit/openvino_xai/graphs/contributors">
+  <img src="https://contrib.rocks/image?repo=openvinotoolkit/openvino_xai" />
+</a>
 
-### Black-box (slow, model-agnostic)
+---
 
-#### Classification
+## License
 
-We benchmarked black-box explanation (using RISE explain method) using 528 CNN models and 115 transformer-based models.
-Black-box explainer support all types of models that output logits (e.g. CNNs, transformers, etc.).
+OpenVINO™ Toolkit is licensed under [Apache License Version 2.0](LICENSE).
+By contributing to the project, you agree to the license and copyright terms therein and release your contribution under these terms.
 
-For more details (statistic, model list, samples of generated saliency maps) see
-[#20](https://github.com/openvinotoolkit/openvino_xai/pull/20).
+---
+
+## Disclaimer
+
+Intel is committed to respecting human rights and avoiding complicity in human rights abuses.
+See Intel's [Global Human Rights Principles](https://www.intel.com/content/www/us/en/policy/policy-human-rights.html).
+Intel's products and software are intended only to be used in applications that do not cause or contribute to a violation of an internationally recognized human right.
+
+---
