@@ -25,6 +25,7 @@ class IRParser:
     @staticmethod
     def get_node_by_condition(ops: List[ov.Node], condition: Callable, k: int = 1):
         """Returns k-th node, which satisfies the condition."""
+        # k = 2
         for op in ops:
             if condition(op):
                 k -= 1

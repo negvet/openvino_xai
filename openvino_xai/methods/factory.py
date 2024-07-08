@@ -18,7 +18,7 @@ from openvino_xai.methods.white_box.base import WhiteBoxMethod
 from openvino_xai.methods.white_box.det_class_probability_map import (
     DetClassProbabilityMap,
 )
-from openvino_xai.methods.white_box.recipro_cam import ReciproCAM, ViTReciproCAM
+from openvino_xai.methods.white_box.recipro_cam import ReciproCAM, ViTReciproCAM, ViTReciproCAMSwin
 
 
 class MethodFactory(ABC):
@@ -118,6 +118,16 @@ class WhiteBoxMethodFactory(MethodFactory):
         if explain_method == Method.VITRECIPROCAM:
             logger.info("Using ViTReciproCAM method (for vision transformers).")
             return ViTReciproCAM(
+                model,
+                preprocess_fn,
+                target_layer,
+                embed_scaling,
+                device_name,
+                **kwargs,
+            )
+        if explain_method == Method.VITRECIPROCAMSWIN:
+            logger.info("Using ViTReciproCAM method (for vision transformers).")
+            return ViTReciproCAMSwin(
                 model,
                 preprocess_fn,
                 target_layer,

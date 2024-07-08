@@ -32,6 +32,7 @@ class Method(Enum):
     ACTIVATIONMAP = "activationmap"
     RECIPROCAM = "reciprocam"
     VITRECIPROCAM = "vitreciprocam"
+    VITRECIPROCAMSWIN = "vitreciprocamswin"
     DETCLASSPROBABILITYMAP = "detclassprobabilitymap"
     RISE = "rise"
 

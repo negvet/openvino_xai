@@ -93,6 +93,8 @@ LIMITED_DIVERSE_SET_OF_VISION_TRANSFORMER_MODELS = [
     # "vit_large_patch14_clip_224.laion2b_ft_in12k_in1k",
     "convit_tiny.fb_in1k",
     "flexivit_small.300ep_in1k",
+    # "swin_base_patch4_window7_224.ms_in22k_ft_in1k",
+    "swin_tiny_patch4_window7_224.ms_in1k",
 ]
 
 
@@ -111,7 +113,7 @@ NON_SUPPORTED_BY_WB_MODELS = [
     "cait_m36_384.fb_dist_in1k",
     "coat_lite_mini.in1k",
     "crossvit_9_240.in1k",
-    "swin_tiny_patch4_window7_224.ms_in1k",
+    # "swin_tiny_patch4_window7_224.ms_in1k",
     "swinv2_tiny_window8_256.ms_in1k",
     "twins_svt_small.in1k",
     "efficientformer_l1.snap_dist_in1k",
@@ -181,7 +183,8 @@ class TestImageClassificationTimm:
         if model_id in LIMITED_DIVERSE_SET_OF_CNN_MODELS:
             explain_method = Method.RECIPROCAM
         elif model_id in LIMITED_DIVERSE_SET_OF_VISION_TRANSFORMER_MODELS:
-            explain_method = Method.VITRECIPROCAM
+            # explain_method = Method.VITRECIPROCAM
+            explain_method = Method.VITRECIPROCAMSWIN
         else:
             raise ValueError
 
@@ -202,6 +205,7 @@ class TestImageClassificationTimm:
             explain_mode=ExplainMode.WHITEBOX,  # defaults to AUTO
             explain_method=explain_method,
             embed_scaling=False,
+            target_layer="/layers/layers.3/blocks/blocks.0/Add_1"  #"/layers/layers.3/blocks/blocks.1/norm1/Div"  #"/layers/layers.3/blocks/blocks.0/Add_1",
         )
 
         target_class = self.supported_num_classes[model_cfg["num_classes"]]
