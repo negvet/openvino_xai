@@ -4,20 +4,15 @@
 from pathlib import Path
 
 import cv2
+import numpy as np
 import openvino.runtime as ov
 import pytest
 
 from openvino_xai.api.api import insert_xai
 from openvino_xai.common.parameters import Task
 from openvino_xai.common.utils import retrieve_otx_model
-from openvino_xai.explainer.explainer import Explainer
-from openvino_xai.explainer.parameters import (
-    ExplainMode,
-    ExplanationParameters,
-    TargetExplainGroup,
-)
+from openvino_xai.explainer.explainer import Explainer, ExplainMode
 from openvino_xai.explainer.utils import get_postprocess_fn, get_preprocess_fn
-from openvino_xai.inserter.parameters import ClassificationInsertionParameters
 from tests.unit.explanation.test_explanation_utils import VOC_NAMES
 
 MODEL_NAME = "mlc_mobilenetv3_large_voc"
@@ -25,12 +20,15 @@ MODEL_NAME = "mlc_mobilenetv3_large_voc"
 
 class TestExplainer:
     image = cv2.imread("tests/assets/cheetah_person.jpg")
-    data_dir = Path(".data")
     preprocess_fn = get_preprocess_fn(
         change_channel_order=True,
         input_size=(224, 224),
         hwc_to_chw=True,
     )
+
+    @pytest.fixture(autouse=True)
+    def setup(self, fxt_data_root):
+        self.data_dir = fxt_data_root
 
     @pytest.mark.parametrize(
         "explain_mode",
@@ -41,14 +39,14 @@ class TestExplainer:
         ],
     )
     @pytest.mark.parametrize(
-        "target_explain_group",
+        "explain_all_classes",
         [
-            TargetExplainGroup.ALL,
-            TargetExplainGroup.CUSTOM,
+            True,
+            False,
         ],
     )
     @pytest.mark.parametrize("with_xai_originally", [True, False])
-    def test_explainer(self, explain_mode, target_explain_group, with_xai_originally):
+    def test_explainer(self, explain_mode, explain_all_classes, with_xai_originally):
         retrieve_otx_model(self.data_dir, MODEL_NAME)
         model_path = self.data_dir / "otx_models" / (MODEL_NAME + ".xml")
         model = ov.Core().read_model(model_path)
@@ -67,16 +65,24 @@ class TestExplainer:
             explain_mode=explain_mode,
         )
 
-        explanation_parameters = ExplanationParameters(
-            target_explain_group=target_explain_group,
-            target_explain_labels=[11, 14],
-            label_names=VOC_NAMES,  # optional
-        )
-        explanation = explainer(self.image, explanation_parameters, num_masks=10)
+        if explain_all_classes:
+            explanation = explainer(
+                self.image,
+                targets=-1,
+                label_names=VOC_NAMES,  # optional
+                num_masks=10,
+            )
+        else:
+            explanation = explainer(
+                self.image,
+                targets=[11, 14],
+                label_names=VOC_NAMES,  # optional
+                num_masks=10,
+            )
 
-        if target_explain_group == TargetExplainGroup.ALL:
+        if explain_all_classes:
             assert len(explanation.saliency_map) == 20
-        if target_explain_group == TargetExplainGroup.CUSTOM:
+        else:
             assert len(explanation.saliency_map) == 2
 
     def test_explainer_wo_preprocessing(self):
@@ -91,11 +97,8 @@ class TestExplainer:
             task=Task.CLASSIFICATION,
         )
 
-        explanation_parameters = ExplanationParameters(
-            target_explain_labels=[11, 14],
-        )
         processed_data = self.preprocess_fn(self.image)
-        explanation = explainer(processed_data, explanation_parameters)
+        explanation = explainer(processed_data, targets=[11, 14])
 
         assert len(explanation.saliency_map) == 2
 
@@ -108,11 +111,8 @@ class TestExplainer:
             postprocess_fn=get_postprocess_fn(),
         )
 
-        explanation_parameters = ExplanationParameters(
-            target_explain_labels=[11, 14],
-        )
         processed_data = self.preprocess_fn(self.image)
-        explanation = explainer(processed_data, explanation_parameters, num_masks=10)
+        explanation = explainer(processed_data, targets=[11, 14], num_masks=10)
 
         assert len(explanation.saliency_map) == 2
 
@@ -122,31 +122,109 @@ class TestExplainer:
         model = ov.Core().read_model(model_path)
 
         with pytest.raises(Exception) as exc_info:
-            insertion_parameters = ClassificationInsertionParameters(
-                target_layer="some_wrong_name",
-            )
             explainer = Explainer(
                 model=model,
                 task=Task.CLASSIFICATION,
                 preprocess_fn=self.preprocess_fn,
                 explain_mode=ExplainMode.AUTO,
-                insertion_parameters=insertion_parameters,
+                target_layer="some_wrong_name",
             )
         assert str(exc_info.value) == "Postprocess function has to be provided for the black-box mode."
 
-        insertion_parameters = ClassificationInsertionParameters(
-            target_layer="some_wrong_name",
-        )
         explainer = Explainer(
             model=model,
             task=Task.CLASSIFICATION,
             preprocess_fn=self.preprocess_fn,
             postprocess_fn=get_postprocess_fn(),
             explain_mode=ExplainMode.AUTO,
-            insertion_parameters=insertion_parameters,
+            target_layer="some_wrong_name",
         )
-        explanation_parameters = ExplanationParameters(
-            target_explain_group=TargetExplainGroup.ALL,
-        )
-        explanation = explainer(self.image, explanation_parameters, num_masks=10)
+        explanation = explainer(self.image, targets=-1, num_masks=10)
         assert len(explanation.saliency_map) == 20
+
+    def test_two_explainers_with_same_model(self):
+        retrieve_otx_model(self.data_dir, MODEL_NAME)
+        model_path = self.data_dir / "otx_models" / (MODEL_NAME + ".xml")
+        model = ov.Core().read_model(model_path)
+
+        explainer = Explainer(
+            model=model,
+            task=Task.CLASSIFICATION,
+        )
+
+        explainer = Explainer(
+            model=model,
+            task=Task.CLASSIFICATION,
+        )
+
+    @pytest.mark.parametrize(
+        "targets",
+        [
+            -1,
+            3,
+            [3],
+            [1, 3],
+            np.uint(1),
+            np.int16(1),
+            np.int64(1),
+            np.array([1]),
+            np.array([1, 2]),
+        ],
+    )
+    def test_different_target_format(self, targets):
+        retrieve_otx_model(self.data_dir, MODEL_NAME)
+        model_path = self.data_dir / "otx_models" / (MODEL_NAME + ".xml")
+        model = ov.Core().read_model(model_path)
+
+        explainer = Explainer(
+            model=model,
+            task=Task.CLASSIFICATION,
+            preprocess_fn=self.preprocess_fn,
+        )
+
+        explanation = explainer(
+            self.image,
+            targets=targets,
+        )
+        if isinstance(targets, int) and targets == -1:
+            assert len(explanation.targets) == 20
+        else:
+            assert len(explanation.targets) == len(np.atleast_1d(np.asarray(targets)))
+
+    def test_overlay_with_resize(self):
+        retrieve_otx_model(self.data_dir, MODEL_NAME)
+        model_path = self.data_dir / "otx_models" / (MODEL_NAME + ".xml")
+        model = ov.Core().read_model(model_path)
+
+        explainer = Explainer(
+            model=model,
+            task=Task.CLASSIFICATION,
+            preprocess_fn=self.preprocess_fn,
+        )
+
+        explanation = explainer(
+            self.image,
+            targets=0,
+            overlay=True,
+            output_size=(50, 70),
+        )
+        assert explanation.saliency_map[0].shape == (50, 70, 3)
+
+    def test_overlay_with_original_image(self):
+        retrieve_otx_model(self.data_dir, MODEL_NAME)
+        model_path = self.data_dir / "otx_models" / (MODEL_NAME + ".xml")
+        model = ov.Core().read_model(model_path)
+
+        explainer = Explainer(
+            model=model,
+            task=Task.CLASSIFICATION,
+            preprocess_fn=self.preprocess_fn,
+        )
+
+        explanation = explainer(
+            self.image,
+            original_input_image=cv2.resize(src=self.image, dsize=(120, 100)),
+            targets=0,
+            overlay=True,
+        )
+        assert explanation.saliency_map[0].shape == (100, 120, 3)

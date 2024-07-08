@@ -8,6 +8,7 @@ from openvino_xai.explainer.utils import (
     ActivationType,
     get_explain_target_indices,
     get_score,
+    is_bhwc_layout,
 )
 
 VOC_NAMES = [
@@ -39,12 +40,12 @@ LABELS_STR = ["bicycle", "bottle"]
 
 def test_get_explain_target_indices_int():
     explain_target_indices = get_explain_target_indices(LABELS_INT, VOC_NAMES)
-    assert explain_target_indices == LABELS_INT
+    assert np.all(explain_target_indices == LABELS_INT)
 
 
 def test_get_explain_target_indices_int_wo_names():
     explain_target_indices = get_explain_target_indices(LABELS_INT)
-    assert explain_target_indices == LABELS_INT
+    assert np.all(explain_target_indices == LABELS_INT)
 
 
 def test_get_explain_target_indices_str():
@@ -77,3 +78,8 @@ def test_get_score():
     x = np.random.rand(1, 5)
     score = get_score(x, 0)
     assert score == x[0][0]
+
+
+def test_is_bhwc_layout():
+    assert is_bhwc_layout(np.empty((1, 224, 224, 3)))
+    assert is_bhwc_layout(np.empty((1, 3, 224, 224))) == False

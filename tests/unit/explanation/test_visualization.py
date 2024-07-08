@@ -6,10 +6,6 @@ import pytest
 
 from openvino_xai.common.utils import get_min_max, scaling
 from openvino_xai.explainer.explanation import Explanation
-from openvino_xai.explainer.parameters import (
-    TargetExplainGroup,
-    VisualizationParameters,
-)
 from openvino_xai.explainer.visualizer import Visualizer, colormap, overlay, resize
 
 SALIENCY_MAPS = [
@@ -17,9 +13,9 @@ SALIENCY_MAPS = [
     (np.random.rand(1, 2, 5, 5) * 255).astype(np.uint8),
 ]
 
-TARGET_EXPLAIN_GROUPS = [
-    TargetExplainGroup.ALL,
-    TargetExplainGroup.CUSTOM,
+EXPLAIN_ALL_CLASSES = [
+    True,
+    False,
 ]
 
 
@@ -63,6 +59,10 @@ def test_resize():
     input_saliency_map = np.random.randint(0, 255, (1, 3, 3), dtype=np.uint8)
     resized_map = resize(input_saliency_map, (5, 5))
     assert resized_map.shape == (1, 5, 5)
+    # Test resizing functionality with 700+ channels to check all classes scenario
+    input_saliency_map = np.random.randint(0, 255, (700, 3, 3), dtype=np.uint8)
+    resized_map = resize(input_saliency_map, (5, 5))
+    assert resized_map.shape == (700, 5, 5)
 
 
 def test_colormap():
@@ -82,7 +82,7 @@ def test_overlay():
 
 class TestVisualizer:
     @pytest.mark.parametrize("saliency_maps", SALIENCY_MAPS)
-    @pytest.mark.parametrize("target_explain_group", TARGET_EXPLAIN_GROUPS)
+    @pytest.mark.parametrize("explain_all_classes", EXPLAIN_ALL_CLASSES)
     @pytest.mark.parametrize("scaling", [True, False])
     @pytest.mark.parametrize("resize", [True, False])
     @pytest.mark.parametrize("colormap", [True, False])
@@ -91,41 +91,32 @@ class TestVisualizer:
     def test_Visualizer(
         self,
         saliency_maps,
-        target_explain_group,
+        explain_all_classes,
         scaling,
         resize,
         colormap,
         overlay,
         overlay_weight,
     ):
-        visualization_parameters = VisualizationParameters(
+        if explain_all_classes:
+            explain_targets = -1
+        else:
+            explain_targets = [0]
+
+        explanation = Explanation(saliency_maps, targets=explain_targets)
+
+        raw_sal_map_dims = len(explanation.shape)
+        original_input_image = np.ones((20, 20, 3))
+        visualizer = Visualizer()
+        explanation = visualizer(
+            explanation=explanation,
+            original_input_image=original_input_image,
             scaling=scaling,
             resize=resize,
             colormap=colormap,
             overlay=overlay,
             overlay_weight=overlay_weight,
         )
-
-        if target_explain_group == TargetExplainGroup.CUSTOM:
-            explain_targets = [0]
-        else:
-            explain_targets = None
-
-        if saliency_maps.ndim == 3:
-            target_explain_group = TargetExplainGroup.IMAGE
-            explain_targets = None
-        explanation = Explanation(
-            saliency_maps, target_explain_group=target_explain_group, target_explain_labels=explain_targets
-        )
-
-        raw_sal_map_dims = len(explanation.shape)
-        original_input_image = np.ones((20, 20, 3))
-        post_processor = Visualizer(
-            explanation=explanation,
-            original_input_image=original_input_image,
-            visualization_parameters=visualization_parameters,
-        )
-        explanation = post_processor.run()
 
         assert explanation is not None
         expected_dims = raw_sal_map_dims
@@ -141,16 +132,18 @@ class TestVisualizer:
             for map_ in explanation.saliency_map.values():
                 assert map_.shape[:2] == original_input_image.shape[:2]
 
-        if target_explain_group == TargetExplainGroup.IMAGE and not overlay:
-            explanation = Explanation(
-                saliency_maps, target_explain_group=target_explain_group, target_explain_labels=explain_targets
-            )
-            post_processor = Visualizer(
+        if saliency_maps.ndim == 3 and not overlay:
+            explanation = Explanation(saliency_maps, targets=-1)
+            visualizer = Visualizer()
+            explanation_output_size = visualizer(
                 explanation=explanation,
                 output_size=(20, 20),
-                visualization_parameters=visualization_parameters,
+                scaling=scaling,
+                resize=resize,
+                colormap=colormap,
+                overlay=overlay,
+                overlay_weight=overlay_weight,
             )
-            saliency_map_processed_output_size = post_processor.run()
             maps_data = explanation.saliency_map
-            maps_size = saliency_map_processed_output_size.saliency_map
+            maps_size = explanation_output_size.saliency_map
             assert np.all(maps_data["per_image_map"] == maps_size["per_image_map"])
