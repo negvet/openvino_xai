@@ -20,10 +20,12 @@ from openvino_xai.explainer.utils import format_to_bhwc, infer_size_from_image
 
 def resize(saliency_map: np.ndarray, output_size: Tuple[int, int]) -> np.ndarray:
     """Resize saliency map."""
-    x = saliency_map.transpose((1, 2, 0))
+    if saliency_map.ndim == 2:
+        return cv2.resize(saliency_map, output_size[::-1])
 
-    # Resize fails for tensors with 700 and more channels (targets=all classes scenario)
-    # Resizing in batches instead
+    x = saliency_map.transpose((1, 2, 0))
+    # Resizing in batches to prevent memory issue for saliency maps with many
+    # (targets=all classes scenario)
     batch_size = 500
     channels = x.shape[-1]
     resized_batches = []
@@ -31,12 +33,13 @@ def resize(saliency_map: np.ndarray, output_size: Tuple[int, int]) -> np.ndarray
         end_idx = min(start_idx + batch_size, channels)
         batch = x[:, :, start_idx:end_idx]
         resized_batch = cv2.resize(batch, output_size[::-1])
+
+        # Ensure resized batch has three dimensions
+        if resized_batch.ndim == 2:
+            resized_batch = np.expand_dims(resized_batch, axis=2)
         resized_batches.append(resized_batch)
+
     x = np.concatenate(resized_batches, axis=-1)
-
-    if x.ndim == 2:
-        return np.expand_dims(x, axis=0)
-
     return x.transpose((2, 0, 1))
 
 

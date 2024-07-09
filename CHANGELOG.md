@@ -114,6 +114,8 @@
 * Support device by @negvet in https://github.com/openvinotoolkit/openvino_xai/pull/32
 * Fixes for deep dive notebook by @GalyaZalesskaya in https://github.com/openvinotoolkit/openvino_xai/pull/35
 * Refine README.md as self-contained Getting Started by @goodsong81 in https://github.com/openvinotoolkit/openvino_xai/pull/34
+* Add sanity tests for example scripts by @goodsong81 in https://github.com/openvinotoolkit/openvino_xai/pull/39
+* Follow-up fixes for deep dive notebook by @GalyaZalesskaya in https://github.com/openvinotoolkit/openvino_xai/pull/40
 
 ### Known Issues
 
