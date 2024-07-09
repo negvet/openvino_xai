@@ -1,6 +1,7 @@
 # Copyright (C) 2023-2024 Intel Corporation
 # SPDX-License-Identifier: Apache-2.0
 
+import subprocess
 from pathlib import Path
 
 import addict
@@ -231,3 +232,22 @@ class TestDetWB:
         model_path = self.data_dir / "otx_models" / (DEFAULT_DET_MODEL + ".xml")
         model = ov.Core().read_model(model_path)
         return model
+
+
+class TestExample:
+    """Test sanity of examples/run_detection.py."""
+
+    @pytest.fixture(autouse=True)
+    def setup(self, fxt_data_root):
+        self.data_dir = fxt_data_root
+
+    def test_default_model(self):
+        retrieve_otx_model(self.data_dir, DEFAULT_DET_MODEL)
+        model_path = self.data_dir / "otx_models" / (DEFAULT_DET_MODEL + ".xml")
+        cmd = [
+            "python",
+            "examples/run_detection.py",
+            model_path,
+            "tests/assets/blood.jpg",
+        ]
+        subprocess.run(cmd, check=True)  # noqa: S603, PLW1510
