@@ -1,7 +1,7 @@
 # Copyright (C) 2023-2024 Intel Corporation
 # SPDX-License-Identifier: Apache-2.0
 
-import subprocess
+import subprocess  # nosec B404 (not a part of product)
 from pathlib import Path
 
 import addict
