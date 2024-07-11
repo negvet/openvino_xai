@@ -13,8 +13,8 @@ from openvino_xai.methods.white_box.det_class_probability_map import (
     DetClassProbabilityMap,
 )
 from openvino_xai.methods.white_box.recipro_cam import ReciproCAM, ViTReciproCAM
-from tests.integration.test_classification import DEFAULT_CLS_MODEL
-from tests.integration.test_detection import DEFAULT_DET_MODEL
+from tests.intg.test_classification import DEFAULT_CLS_MODEL
+from tests.intg.test_detection import DEFAULT_DET_MODEL
 
 
 class TestActivationMap:
@@ -23,12 +23,11 @@ class TestActivationMap:
     _ref_sal_maps = {DEFAULT_CLS_MODEL: np.array([32, 12, 34, 47, 36, 0, 42], dtype=np.int16)}
 
     @pytest.fixture(autouse=True)
-    def set_up(self) -> None:
+    def setup(self, fxt_data_root: Path) -> None:
         """Setup the test case."""
-        data_dir = Path(".data")
         self.model_name = DEFAULT_CLS_MODEL
-        retrieve_otx_model(data_dir, self.model_name)
-        model_path = data_dir / "otx_models" / (self.model_name + ".xml")
+        retrieve_otx_model(fxt_data_root, self.model_name)
+        model_path = fxt_data_root / "otx_models" / (self.model_name + ".xml")
         self.model = ov.Core().read_model(model_path)
         self.target_layer = None
 
@@ -36,7 +35,6 @@ class TestActivationMap:
         """Test ActivationMap is created properly."""
         xai_method = ActivationMap(self.model, self.target_layer, prepare_model=False)
 
-        assert xai_method.model_ori == self.model
         assert isinstance(xai_method.model_ori, ov.Model)
         assert xai_method.embed_scaling
         assert not xai_method.per_class
@@ -53,8 +51,8 @@ class TestActivationMap:
         assert len(xai_output_node.get_output_partial_shape(0)) == 3
         assert tuple(xai_output_node.get_output_partial_shape(0))[1:] == (7, 7)
 
-        model_ori_outputs = self.model.outputs
-        model_ori_params = self.model.get_parameters()
+        model_ori_outputs = activationmap_method.model_ori.outputs
+        model_ori_params = activationmap_method.model_ori.get_parameters()
         model_xai = ov.Model([*model_ori_outputs, xai_output_node.output(0)], model_ori_params)
 
         compiled_model = ov.Core().compile_model(model_xai, "CPU")
@@ -81,12 +79,11 @@ class TestReciproCAM:
     _ref_sal_maps = {DEFAULT_CLS_MODEL: np.array([113, 71, 92, 101, 81, 56, 81], dtype=np.int16)}
 
     @pytest.fixture(autouse=True)
-    def setUp(self) -> None:
+    def setup(self, fxt_data_root: Path) -> None:
         """Setup the test case."""
-        data_dir = Path(".data")
         self.model_name = DEFAULT_CLS_MODEL
-        retrieve_otx_model(data_dir, self.model_name)
-        model_path = data_dir / "otx_models" / (self.model_name + ".xml")
+        retrieve_otx_model(fxt_data_root, self.model_name)
+        model_path = fxt_data_root / "otx_models" / (self.model_name + ".xml")
         self.model = ov.Core().read_model(model_path)
         self.target_layer = None
 
@@ -95,7 +92,6 @@ class TestReciproCAM:
 
         reciprocam_xai_method = ReciproCAM(self.model, self.target_layer, prepare_model=False)
 
-        assert reciprocam_xai_method.model_ori == self.model
         assert isinstance(reciprocam_xai_method.model_ori, ov.Model)
         assert reciprocam_xai_method.embed_scaling
         assert reciprocam_xai_method.per_class
@@ -112,8 +108,8 @@ class TestReciproCAM:
         assert len(xai_output_node.shape) == 4
         assert tuple(xai_output_node.shape)[2:] == (7, 7)
 
-        model_ori_outputs = self.model.outputs
-        model_ori_params = self.model.get_parameters()
+        model_ori_outputs = reciprocam_xai_method.model_ori.outputs
+        model_ori_params = reciprocam_xai_method.model_ori.get_parameters()
         model_xai = ov.Model([*model_ori_outputs, xai_output_node.output(0)], model_ori_params)
 
         compiled_model = ov.Core().compile_model(model_xai, "CPU")
@@ -140,12 +136,11 @@ class TestViTReciproCAM:
     _ref_sal_maps = {"deit-tiny": np.array([110, 75, 47, 47, 51, 56, 62, 64, 62, 61], dtype=np.int16)}
 
     @pytest.fixture(autouse=True)
-    def setUp(self) -> None:
+    def setup(self, fxt_data_root: Path) -> None:
         """Setup the test case."""
-        data_dir = Path(".data")
         self.model_name = "deit-tiny"
-        retrieve_otx_model(data_dir, self.model_name)
-        model_path = data_dir / "otx_models" / (self.model_name + ".xml")
+        retrieve_otx_model(fxt_data_root, self.model_name)
+        model_path = fxt_data_root / "otx_models" / (self.model_name + ".xml")
         self.model = ov.Core().read_model(model_path)
         self.target_layer = None
 
@@ -154,7 +149,6 @@ class TestViTReciproCAM:
 
         reciprocam_xai_method = ViTReciproCAM(self.model, self.target_layer, prepare_model=False)
 
-        assert reciprocam_xai_method.model_ori == self.model
         assert isinstance(reciprocam_xai_method.model_ori, ov.Model)
         assert reciprocam_xai_method.embed_scaling
         assert reciprocam_xai_method.per_class
@@ -174,8 +168,8 @@ class TestViTReciproCAM:
         assert len(xai_output_node.shape) == 4
         assert tuple(xai_output_node.shape)[2:] == (14, 14)
 
-        model_ori_outputs = self.model.outputs
-        model_ori_params = self.model.get_parameters()
+        model_ori_outputs = reciprocam_xai_method.model_ori.outputs
+        model_ori_params = reciprocam_xai_method.model_ori.get_parameters()
         model_xai = ov.Model([*model_ori_outputs, xai_output_node.output(0)], model_ori_params)
 
         compiled_model = ov.Core().compile_model(model_xai, "CPU")
@@ -210,11 +204,10 @@ class TestDetProbMapXAI:
     }
 
     @pytest.fixture(autouse=True)
-    def setUp(self) -> None:
+    def setup(self, fxt_data_root: Path) -> None:
         """Setup the test case."""
-        data_dir = Path(".data")
-        retrieve_otx_model(data_dir, DEFAULT_DET_MODEL)
-        model_path = data_dir / "otx_models" / (DEFAULT_DET_MODEL + ".xml")
+        retrieve_otx_model(fxt_data_root, DEFAULT_DET_MODEL)
+        model_path = fxt_data_root / "otx_models" / (DEFAULT_DET_MODEL + ".xml")
         self.model = ov.Core().read_model(model_path)
         self.target_layer = [
             "/bbox_head/atss_cls_1/Conv/WithoutBiases",
@@ -228,10 +221,12 @@ class TestDetProbMapXAI:
         """Test DetClassProbabilityMap is created properly."""
 
         detection_xai_method = DetClassProbabilityMap(
-            self.model, self.target_layer, num_anchors=self.num_anchors, prepare_model=False
+            self.model,
+            target_layer=self.target_layer,
+            num_anchors=self.num_anchors,
+            prepare_model=False,
         )
 
-        assert detection_xai_method.model_ori == self.model
         assert isinstance(detection_xai_method.model_ori, ov.Model)
         assert detection_xai_method.embed_scaling
         assert detection_xai_method.per_class
@@ -242,7 +237,10 @@ class TestDetProbMapXAI:
     def test_generate_xai_branch(self):
         """Test that DetClassProbabilityMap creates a proper XAI branch node."""
         detection_xai_method = DetClassProbabilityMap(
-            self.model, self.target_layer, num_anchors=self.num_anchors, prepare_model=False
+            self.model,
+            target_layer=self.target_layer,
+            num_anchors=self.num_anchors,
+            prepare_model=False,
         )
 
         xai_output_node = detection_xai_method.generate_xai_branch()
@@ -252,8 +250,8 @@ class TestDetProbMapXAI:
         assert len(xai_output_node.shape) == 4
         assert tuple(xai_output_node.shape)[2:] == (23, 23)
 
-        model_ori_outputs = self.model.outputs
-        model_ori_params = self.model.get_parameters()
+        model_ori_outputs = detection_xai_method.model_ori.outputs
+        model_ori_params = detection_xai_method.model_ori.get_parameters()
         model_xai = ov.Model([*model_ori_outputs, xai_output_node.output(0)], model_ori_params)
 
         compiled_model = ov.Core().compile_model(model_xai, "CPU")

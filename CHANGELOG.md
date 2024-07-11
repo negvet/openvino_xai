@@ -10,19 +10,28 @@
 
 *
 
+### Known Issues
+
+* OpenVINO IR branch insertion not working for models converted directly from torch models in https://github.com/openvinotoolkit/openvino_xai/issues/26
+* Runtime error from ONNX / OpenVINO IR models while conversion or inference for XAI in https://github.com/openvinotoolkit/openvino_xai/issues/29
+* Models not supported by white box XAI methods in https://github.com/openvinotoolkit/openvino_xai/issues/30
+
 ### New Contributors
 
 *
 
+---
 
-## [1.0.0 Unreleased]
+## [1.0.0]
 
 ### Summary
 
-* Support of generation of classification and detection par-class and per-image saliency maps
-* Enable white-box (ReciproCAM) and black-box (RISE) eXplainable AI algorithms
-* Suppor of CNN and transformer-based architectures (validation on diverse set of timm models)
+* Support generation of classification and detection per-class and per-image saliency maps
+* Enable White-Box ([ReciproCAM](https://arxiv.org/abs/2209.14074)) and Black-Box ([RISE](https://arxiv.org/abs/1806.07421v3)) eXplainable AI algorithms
+* Support CNNs and Transformer-based architectures (validation on diverse set of timm models)
 * Enable Explainer (stateful object) as the main interface for XAI algorithms
+* Support `AUTO` mode by default to detect the best XAI method for given models
+* Expose `insert_xai` functional API to support XAI head insertion for OpenVINO IR models
 
 ### What's Changed
 
@@ -83,7 +92,35 @@
 * Add unit test coverage setting by @goodsong81 in https://github.com/intel-sandbox/openvino_xai/pull/63
 * Add LICENSE and SECURITY.md by @goodsong81 in https://github.com/intel-sandbox/openvino_xai/pull/64
 * Add CHANGLOG.md by @goodsong81 in https://github.com/intel-sandbox/openvino_xai/pull/65
+* Update project title and repo links by @goodsong81 in https://github.com/openvinotoolkit/openvino_xai/pull/1
+* Add pre-merge GitHub Actions workflow by @goodsong81 in https://github.com/openvinotoolkit/openvino_xai/pull/2
+* Add security code scan workflow by @goodsong81 in https://github.com/openvinotoolkit/openvino_xai/pull/4
+* Add daily E2E test workflow by @goodsong81 in https://github.com/openvinotoolkit/openvino_xai/pull/6
 * Refactor names/folders/objects for better verbosity by @GalyaZalesskaya in https://github.com/openvinotoolkit/openvino_xai/pull/5
+* Fix daily workflow by @goodsong81 in https://github.com/openvinotoolkit/openvino_xai/pull/8
+* Support XAI Method Abstract Interface by @negvet in https://github.com/openvinotoolkit/openvino_xai/pull/7
+* Update version to 1.0.0rc0 by @goodsong81 in https://github.com/openvinotoolkit/openvino_xai/pull/10
+* Move insert_xai into separate functional api module by @negvet in https://github.com/openvinotoolkit/openvino_xai/pull/11
+* Add fuzzing test by @goodsong81 in https://github.com/openvinotoolkit/openvino_xai/pull/13
+* Support CodeQL for security code scan by @goodsong81 in https://github.com/openvinotoolkit/openvino_xai/pull/14
+* Route e2e test to "large-disk" labeled ci-runner by @yunchu in https://github.com/openvinotoolkit/openvino_xai/pull/17
+* Flatten parameter objects by @negvet in https://github.com/openvinotoolkit/openvino_xai/pull/16
+* Add mount option for ci script by @yunchu in https://github.com/openvinotoolkit/openvino_xai/pull/21
+* Remove target explain group by @negvet in https://github.com/openvinotoolkit/openvino_xai/pull/25
+* Add third-party-programs.txt by @goodsong81 in https://github.com/openvinotoolkit/openvino_xai/pull/27
+* Add full timm functional tests by @goodsong81 in https://github.com/openvinotoolkit/openvino_xai/pull/20
+* Add performance tests @goodsong81 in https://github.com/openvinotoolkit/openvino_xai/pull/31
+* Extend some explainer/visualizer capabilities and Fix pre-release bugs by @negvet in https://github.com/openvinotoolkit/openvino_xai/pull/28
+* Support device by @negvet in https://github.com/openvinotoolkit/openvino_xai/pull/32
+* Fixes for deep dive notebook by @GalyaZalesskaya in https://github.com/openvinotoolkit/openvino_xai/pull/35
+* Refine README.md as self-contained Getting Started by @goodsong81 in https://github.com/openvinotoolkit/openvino_xai/pull/34
+* Add sanity tests for example scripts by @goodsong81 in https://github.com/openvinotoolkit/openvino_xai/pull/39
+* Follow-up fixes for deep dive notebook by @GalyaZalesskaya in https://github.com/openvinotoolkit/openvino_xai/pull/40
+
+### Known Issues
+
+* Runtime error from ONNX / OpenVINO IR models while conversion or inference for XAI in https://github.com/openvinotoolkit/openvino_xai/issues/29
+* Models not supported by white box XAI methods in https://github.com/openvinotoolkit/openvino_xai/issues/30
 
 ### New Contributors
 
@@ -91,3 +128,4 @@
 * @GalyaZalesskaya made their first contribution in https://github.com/intel-sandbox/openvino_xai/pull/1
 * @sovrasov made their first contribution in https://github.com/intel-sandbox/openvino_xai/pull/10
 * @goodsong81 made their first contribution in https://github.com/intel-sandbox/openvino_xai/pull/59
+* @yunchu made their first contribution in https://github.com/openvinotoolkit/openvino_xai/pull/17

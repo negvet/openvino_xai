@@ -11,12 +11,7 @@ import openvino.runtime as ov
 
 import openvino_xai as xai
 from openvino_xai.common.utils import logger
-from openvino_xai.explainer.parameters import (
-    ExplainMode,
-    ExplanationParameters,
-    TargetExplainGroup,
-)
-from openvino_xai.inserter.parameters import DetectionInsertionParameters
+from openvino_xai.explainer.explainer import ExplainMode
 
 
 def get_argument_parser():
@@ -29,8 +24,8 @@ def get_argument_parser():
 
 def preprocess_fn(x: np.ndarray) -> np.ndarray:
     # TODO: make sure it is correct
-    x = cv2.resize(src=x, dsize=(416, 416))  # OTX YOLOX
-    # x = cv2.resize(src=x, dsize=(992, 736))  # OTX ATSS
+    # x = cv2.resize(src=x, dsize=(416, 416))  # OTX YOLOX
+    x = cv2.resize(src=x, dsize=(992, 736))  # OTX ATSS
     x = x.transpose((2, 0, 1))
     x = np.expand_dims(x, 0)
     return x
@@ -50,24 +45,18 @@ def main(argv):
     model = ov.Core().read_model(args.model_path)
 
     # OTX YOLOX
-    cls_head_output_node_names = [
-        "/bbox_head/multi_level_conv_cls.0/Conv/WithoutBiases",
-        "/bbox_head/multi_level_conv_cls.1/Conv/WithoutBiases",
-        "/bbox_head/multi_level_conv_cls.2/Conv/WithoutBiases",
-    ]
-    # # OTX ATSS
     # cls_head_output_node_names = [
-    #     "/bbox_head/atss_cls_1/Conv/WithoutBiases",
-    #     "/bbox_head/atss_cls_2/Conv/WithoutBiases",
-    #     "/bbox_head/atss_cls_3/Conv/WithoutBiases",
-    #     "/bbox_head/atss_cls_4/Conv/WithoutBiases",
+    #     "/bbox_head/multi_level_conv_cls.0/Conv/WithoutBiases",
+    #     "/bbox_head/multi_level_conv_cls.1/Conv/WithoutBiases",
+    #     "/bbox_head/multi_level_conv_cls.2/Conv/WithoutBiases",
     # ]
-    insertion_parameters = DetectionInsertionParameters(
-        target_layer=cls_head_output_node_names,
-        # num_anchors=[1, 1, 1, 1, 1],
-        saliency_map_size=(23, 23),  # Optional
-        explain_method=xai.Method.DETCLASSPROBABILITYMAP,  # Optional
-    )
+    # OTX ATSS
+    cls_head_output_node_names = [
+        "/bbox_head/atss_cls_1/Conv/WithoutBiases",
+        "/bbox_head/atss_cls_2/Conv/WithoutBiases",
+        "/bbox_head/atss_cls_3/Conv/WithoutBiases",
+        "/bbox_head/atss_cls_4/Conv/WithoutBiases",
+    ]
 
     # Create explainer object
     explainer = xai.Explainer(
@@ -75,18 +64,18 @@ def main(argv):
         task=xai.Task.DETECTION,
         preprocess_fn=preprocess_fn,
         explain_mode=ExplainMode.WHITEBOX,  # defaults to AUTO
-        insertion_parameters=insertion_parameters,
+        target_layer=cls_head_output_node_names,
+        saliency_map_size=(23, 23),  # Optional
     )
 
     # Prepare input image and explanation parameters, can be different for each explain call
     image = cv2.imread(args.image_path)
-    explanation_parameters = ExplanationParameters(
-        target_explain_group=TargetExplainGroup.CUSTOM,  # CUSTOM list of classes to explain, also ALL possible
-        target_explain_labels=[0, 1, 2, 3, 4],  # target classes to explain
-    )
 
     # Generate explanation
-    explanation = explainer(image, explanation_parameters)
+    explanation = explainer(
+        image,
+        targets=[0, 1, 2],  # target classes to explain
+    )
 
     logger.info(
         f"Generated {len(explanation.saliency_map)} detection "

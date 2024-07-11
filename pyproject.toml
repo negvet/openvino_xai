@@ -7,7 +7,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "openvino_xai"
-version = "1.1.0rc01"
+version = "1.1.0rc0"
 dependencies = [
   "openvino-dev==2024.2",
   "opencv-python",
@@ -36,17 +36,33 @@ dev = [
   "pytest",
   "pytest-cov",
   "pytest-csv",
+  "pytest-xdist",
   "pre-commit==3.7.0",
   "addict",
 ]
 val = [
   "timm==0.9.5",
   "onnx==1.14.1",
+  "pandas",
+  "py-cpuinfo",
+  "openpyxl",
+]
+doc = [
+  "furo",
+  "myst-parser",
+  "pydata-sphinx-theme",
+  "sphinx",
+  "sphinx-autoapi",
+  "sphinx-copybutton",
+  "sphinx-design",
+  "sphinx-panels",
+  "sphinx-tabs",
+  "sphinxemoji",
 ]
 
 [project.urls]
 Homepage = "https://github.com/openvinotoolkit/openvino_xai"
-Documentation = "https://curly-couscous-ovjvm29.pages.github.io/"
+Documentation = "https://openvinotoolkit.github.io/openvino_xai/"
 Repository = "https://github.com/openvinotoolkit/openvino_xai.git"
 
 [tool.setuptools.packages.find]

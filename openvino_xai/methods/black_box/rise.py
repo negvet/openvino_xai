@@ -23,6 +23,8 @@ class RISE(BlackBoxXAIMethod):
     :param preprocess_fn: Preprocessing function, identity function by default
         (assume input images are already preprocessed by user).
     :type preprocess_fn: Callable[[np.ndarray], np.ndarray]
+    :param device_name: Device type name.
+    :type device_name: str
     :param prepare_model: Loading (compiling) the model prior to inference.
     :type prepare_model: bool
     """
@@ -32,9 +34,10 @@ class RISE(BlackBoxXAIMethod):
         model: ov.Model,
         postprocess_fn: Callable[[OVDict], np.ndarray],
         preprocess_fn: Callable[[np.ndarray], np.ndarray] = IdentityPreprocessFN(),
+        device_name: str = "CPU",
         prepare_model: bool = True,
     ):
-        super().__init__(model=model, preprocess_fn=preprocess_fn)
+        super().__init__(model=model, preprocess_fn=preprocess_fn, device_name=device_name)
         self.postprocess_fn = postprocess_fn
 
         if prepare_model:
@@ -100,8 +103,9 @@ class RISE(BlackBoxXAIMethod):
         prob: float,
         seed: int,
     ) -> np.ndarray:
-        _, _, height, width = data_preprocessed.shape
-        input_size = height, width
+        from openvino_xai.explainer.utils import is_bhwc_layout
+
+        input_size = data_preprocessed.shape[1:3] if is_bhwc_layout(data_preprocessed) else data_preprocessed.shape[2:4]
 
         forward_output = self.model_forward(data_preprocessed, preprocess=False)
         logits = self.postprocess_fn(forward_output)
@@ -118,7 +122,10 @@ class RISE(BlackBoxXAIMethod):
         for _ in tqdm(range(0, num_masks), desc="Explaining in synchronous mode"):
             mask = self._generate_mask(input_size, num_cells, prob, rand_generator)
             # Add channel dimensions for masks
-            masked = mask * data_preprocessed
+            if is_bhwc_layout(data_preprocessed):
+                masked = np.expand_dims(mask, 2) * data_preprocessed
+            else:
+                masked = mask * data_preprocessed
 
             forward_output = self.model_forward(masked, preprocess=False)
             raw_scores = self.postprocess_fn(forward_output)
@@ -132,7 +139,7 @@ class RISE(BlackBoxXAIMethod):
 
     @staticmethod
     def _get_scored_mask(raw_scores: np.ndarray, mask: np.ndarray, target_classes: List[int] | None) -> np.ndarray:
-        if target_classes:
+        if target_classes is not None:
             return np.take(raw_scores, target_classes).reshape(-1, 1, 1) * mask
         else:
             return raw_scores.reshape(-1, 1, 1) * mask
