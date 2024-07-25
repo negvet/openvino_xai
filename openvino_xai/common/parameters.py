@@ -34,6 +34,7 @@ class Method(Enum):
     VITRECIPROCAM = "vitreciprocam"
     DETCLASSPROBABILITYMAP = "detclassprobabilitymap"
     RISE = "rise"
+    AISE = "aise"
 
 
 WhiteBoxXAIMethods = {
