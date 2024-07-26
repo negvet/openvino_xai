@@ -51,7 +51,7 @@ class RISE(BlackBoxXAIMethod):
         prob: float = 0.5,
         seed: int = 0,
         scale_output: bool = True,
-    ):
+    ) -> np.ndarray:
         """
         Generates inference result of the RISE algorithm.
 

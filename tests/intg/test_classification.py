@@ -339,7 +339,7 @@ class TestClsBB:
             resize=False,
             colormap=False,
             num_iterations_per_kernel=2,
-            kernel_widths=[0.1]
+            kernel_widths=[0.1],
         )
         assert target_class in explanation.saliency_map
         assert len(explanation.saliency_map) == len([target_class])

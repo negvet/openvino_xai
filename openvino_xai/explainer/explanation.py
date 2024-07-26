@@ -124,7 +124,9 @@ class Explanation:
         explain_target_indices = get_explain_target_indices(targets, label_names)
         if self.total_num_targets is not None:
             if not all(0 <= target_index <= (self.total_num_targets - 1) for target_index in explain_target_indices):
-                raise ValueError(f"All targets explanation indices have to be in range 0..{self.total_num_targets - 1}.")
+                raise ValueError(
+                    f"All targets explanation indices have to be in range 0..{self.total_num_targets - 1}."
+                )
         return explain_target_indices
 
     def save(self, dir_path: Path | str, name: str | None = None) -> None:

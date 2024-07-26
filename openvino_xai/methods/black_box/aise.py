@@ -2,20 +2,25 @@
 # SPDX-License-Identifier: Apache-2.0
 
 import collections
-from typing import Callable, List, Tuple, Dict
-
 import math
-from scipy.optimize import direct, Bounds
+from typing import Callable, Dict, List, Tuple
+
 import numpy as np
 import openvino.runtime as ov
 from openvino.runtime.utils.data_helpers.wrappers import OVDict
+from scipy.optimize import Bounds, direct
 
-from openvino_xai.common.utils import IdentityPreprocessFN, infer_size_from_image, scaling, sigmoid
+from openvino_xai.common.utils import (
+    IdentityPreprocessFN,
+    infer_size_from_image,
+    scaling,
+    sigmoid,
+)
 from openvino_xai.methods.black_box.base import BlackBoxXAIMethod, Preset
 
 
 class AISE(BlackBoxXAIMethod):
-    """AISE explains classification models in black-box mode using 
+    """AISE explains classification models in black-box mode using
     AISE: Adaptive Input Sampling for Explanation of Black-box Models.
     (TODO (negvet): add link to the paper.)
 
@@ -44,21 +49,21 @@ class AISE(BlackBoxXAIMethod):
         self.postprocess_fn = postprocess_fn
 
         self.data_preprocessed = None
-        self.target = None
-        self.num_iterations_per_kernel = None
-        self.kernel_widths = None
-        self._current_kernel_width = None
-        self.solver_epsilon = None
-        self.locally_biased = None
-        self.kernel_params_hist = None
-        self.pred_score_hist = None
-        self.input_size = None
-        self._mask_generator = None
-        
+        self.target: int | None = None
+        self.num_iterations_per_kernel: int | None = None
+        self.kernel_widths: List[float] | np.ndarray | None = None
+        self._current_kernel_width: float | None = None
+        self.solver_epsilon = 0.1
+        self.locally_biased = False
+        self.kernel_params_hist: Dict = collections.defaultdict(list)
+        self.pred_score_hist: Dict = collections.defaultdict(list)
+        self.input_size: Tuple[int, int] | None = None
+        self._mask_generator: GaussianPerturbationMask | None = None
+
         if prepare_model:
             self.prepare_model()
 
-    def generate_saliency_map(
+    def generate_saliency_map(  # type: ignore
         self,
         data: np.ndarray,
         explain_target_indices: List[int],
@@ -98,7 +103,7 @@ class AISE(BlackBoxXAIMethod):
 
         self.input_size = infer_size_from_image(self.data_preprocessed)
         self._mask_generator = GaussianPerturbationMask(self.input_size)
-        
+
         saliency_maps = {}
         for target in explain_target_indices:
             self.kernel_params_hist = collections.defaultdict(list)
@@ -112,11 +117,11 @@ class AISE(BlackBoxXAIMethod):
         return saliency_maps
 
     def _preset_parameters(
-            self, 
-            preset: Preset, 
-            num_iterations_per_kernel: int | None, 
-            kernel_widths: List[float] | np.ndarray | None,
-        ) -> None:
+        self,
+        preset: Preset,
+        num_iterations_per_kernel: int | None,
+        kernel_widths: List[float] | np.ndarray | None,
+    ) -> None:
         if preset == Preset.SPEED:
             self.num_iterations_per_kernel = 25
             self.kernel_widths = np.linspace(0.1, 0.25, 3)
@@ -128,7 +133,7 @@ class AISE(BlackBoxXAIMethod):
             self.kernel_widths = np.linspace(0.075, 0.25, 4)
         else:
             raise ValueError(f"Preset {preset} is not supported.")
-        
+
         if num_iterations_per_kernel is not None:
             self.num_iterations_per_kernel = num_iterations_per_kernel
         if kernel_widths is not None:
@@ -147,12 +152,13 @@ class AISE(BlackBoxXAIMethod):
 
     def _run_optimization(self):
         """Run DIRECT optimizer by default."""
-        _ = direct(func=self._objective_function,
-                    bounds=Bounds([0.0, 0.0], [1.0, 1.0]),
-                    eps=self.solver_epsilon,
-                    maxfun=self.num_iterations_per_kernel,
-                    locally_biased=self.locally_biased,
-                    )
+        _ = direct(
+            func=self._objective_function,
+            bounds=Bounds([0.0, 0.0], [1.0, 1.0]),
+            eps=self.solver_epsilon,
+            maxfun=self.num_iterations_per_kernel,
+            locally_biased=self.locally_biased,
+        )
 
     def _objective_function(self, args) -> float:
         """
@@ -174,7 +180,7 @@ class AISE(BlackBoxXAIMethod):
         data_perturbed_delete = self.data_preprocessed * (1 - kernel_mask)
         pred_score_delete = self._get_score(data_perturbed_delete)
 
-        loss = (pred_score_preserve - pred_score_delete)
+        loss = pred_score_preserve - pred_score_delete
 
         self.pred_score_hist[self._current_kernel_width].append(pred_score_preserve - pred_score_delete)
 
@@ -187,7 +193,7 @@ class AISE(BlackBoxXAIMethod):
         x = self.postprocess_fn(x)
         if np.max(x) > 1 or np.min(x) < 0:
             x = sigmoid(x)
-        pred_scores = x.squeeze()
+        pred_scores = x.squeeze()  # type: ignore
         return pred_scores[self.target]
 
     def _kernel_density_estimation(self) -> np.ndarray:
@@ -212,7 +218,7 @@ class GaussianPerturbationMask:
     """
     Perturbation mask generator.
     """
-    
+
     def __init__(self, input_size: Tuple[int, int]):
         h = np.linspace(0, 1, input_size[0])
         w = np.linspace(0, 1, input_size[1])
@@ -221,8 +227,8 @@ class GaussianPerturbationMask:
     def _get_2d_gaussian(self, gauss_params: Tuple[float, float, float]) -> np.ndarray:
         mh, mw, sigma = gauss_params
         A = 1 / (2 * math.pi * sigma * sigma)
-        B = (self.h - mh) ** 2 / (2 * sigma ** 2)
-        C = (self.w - mw) ** 2 / (2 * sigma ** 2)
+        B = (self.h - mh) ** 2 / (2 * sigma**2)
+        C = (self.w - mw) ** 2 / (2 * sigma**2)
         return A * np.exp(-(B + C))
 
     def generate_kernel_mask(self, gauss_param: Tuple[float, float, float], scale: float = 1.0):

@@ -12,7 +12,6 @@ from urllib.request import urlretrieve
 import numpy as np
 import openvino.runtime as ov
 
-
 logger = logging.getLogger("openvino_xai")
 handler = logging.StreamHandler()
 formatter = logging.Formatter("%(levelname)s:%(name)s:%(message)s")

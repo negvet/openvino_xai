@@ -190,9 +190,13 @@ class BlackBoxMethodFactory(MethodFactory):
         **kwargs,
     ) -> MethodBase:
         if task == Task.CLASSIFICATION:
-            return cls.create_classification_method(model, postprocess_fn, preprocess_fn, explain_method, device_name, **kwargs)
+            return cls.create_classification_method(
+                model, postprocess_fn, preprocess_fn, explain_method, device_name, **kwargs
+            )
         if task == Task.DETECTION:
-            return cls.create_detection_method(model, postprocess_fn, preprocess_fn, explain_method, device_name, **kwargs)
+            return cls.create_detection_method(
+                model, postprocess_fn, preprocess_fn, explain_method, device_name, **kwargs
+            )
         raise ValueError(f"Model type {task} is not supported in black-box mode.")
 
     @staticmethod

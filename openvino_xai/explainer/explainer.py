@@ -10,7 +10,11 @@ import openvino as ov
 
 from openvino_xai import Task
 from openvino_xai.common.parameters import Method
-from openvino_xai.common.utils import IdentityPreprocessFN, infer_size_from_image, logger
+from openvino_xai.common.utils import (
+    IdentityPreprocessFN,
+    infer_size_from_image,
+    logger,
+)
 from openvino_xai.explainer.explanation import Explanation
 from openvino_xai.explainer.utils import (
     convert_targets_to_numpy,
