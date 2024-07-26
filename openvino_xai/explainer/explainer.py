@@ -2,11 +2,11 @@
 # SPDX-License-Identifier: Apache-2.0
 
 from enum import Enum
-from typing import Callable, List, Tuple
+from os import PathLike
+from typing import Callable, List, Mapping, Tuple
 
 import numpy as np
-import openvino.runtime as ov
-from openvino.runtime.utils.data_helpers.wrappers import OVDict
+import openvino as ov
 
 from openvino_xai import Task
 from openvino_xai.common.parameters import Method
@@ -42,17 +42,18 @@ class Explainer:
     Explainer creates methods and uses them to generate explanations.
 
     Usage:
-        explanation = explainer_object(data, explanation_parameters)
+        >>> explainer = Explainer("model.xml", Task.CLASSIFICATION)
+        >>> explanation = explainer(data)
 
-    :param model: Original model.
-    :type model: ov.Model
+    :param model: Original model object, OpenVINO IR file (.xml) or ONNX file (.onnx).
+    :type model: ov.Model | str | PathLike
     :param task: Type of the task: CLASSIFICATION or DETECTION.
     :type task: Task
     :param preprocess_fn: Preprocessing function, identity function by default
         (assume input images are already preprocessed by user).
     :type preprocess_fn: Callable[[np.ndarray], np.ndarray]
     :param postprocess_fn: Postprocessing functions, required for black-box.
-    :type postprocess_fn: Callable[[OVDict], np.ndarray]
+    :type postprocess_fn: Callable[[Mapping], np.ndarray]
     :param explain_mode: Explain mode.
     :type explain_mode: ExplainMode
     :parameter explain_method: Explain method to use for model explanation.
@@ -67,10 +68,10 @@ class Explainer:
 
     def __init__(
         self,
-        model: ov.Model,
+        model: ov.Model | str | PathLike,
         task: Task,
         preprocess_fn: Callable[[np.ndarray], np.ndarray] = IdentityPreprocessFN(),
-        postprocess_fn: Callable[[OVDict], np.ndarray] = None,
+        postprocess_fn: Callable[[Mapping], np.ndarray] = None,
         explain_mode: ExplainMode = ExplainMode.AUTO,
         explain_method: Method | None = None,
         target_layer: str | List[str] | None = None,
@@ -78,8 +79,11 @@ class Explainer:
         device_name: str = "CPU",
         **kwargs,
     ) -> None:
+        if isinstance(model, (str, PathLike)):
+            model = ov.Core().read_model(model)
+
         self.model = model
-        self.compiled_model: ov.ie_api.CompiledModel | None = None
+        self.compiled_model: ov.CompiledModel | None = None
         self.task = task
 
         if isinstance(preprocess_fn, IdentityPreprocessFN):
@@ -131,7 +135,7 @@ class Explainer:
     def __call__(
         self,
         data: np.ndarray,
-        targets: np.ndarray | List[int | str] | int | str,
+        targets: np.ndarray | List[int | str] | int | str = -1,
         original_input_image: np.ndarray | None = None,
         label_names: List[str] | None = None,
         output_size: Tuple[int, int] | None = None,
@@ -159,7 +163,7 @@ class Explainer:
     def explain(
         self,
         data: np.ndarray,
-        targets: np.ndarray | List[int | str] | int | str,
+        targets: np.ndarray | List[int | str] | int | str = -1,
         original_input_image: np.ndarray | None = None,
         label_names: List[str] | None = None,
         output_size: Tuple[int, int] | None = None,
@@ -176,7 +180,7 @@ class Explainer:
         :param data: Input image.
         :type data: np.ndarray
         :param targets: List of custom labels to explain, optional. Can be list of integer indices (int),
-            or list of names (str) from label_names.
+            or list of names (str) from label_names. Defaults to -1, which means all class labels.
         :type targets: np.ndarray | List[int | str] | int | str
         :param label_names: List of all label names.
         :type label_names: List[str] | None
@@ -227,7 +231,7 @@ class Explainer:
             overlay_weight,
         )
 
-    def model_forward(self, x: np.ndarray, preprocess: bool = True) -> OVDict:
+    def model_forward(self, x: np.ndarray, preprocess: bool = True) -> Mapping:
         """Forward pass of the compiled model."""
         return self.method.model_forward(x, preprocess)
 

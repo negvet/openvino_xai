@@ -1,12 +1,11 @@
 # Copyright (C) 2023-2024 Intel Corporation
 # SPDX-License-Identifier: Apache-2.0
 
-from typing import Callable, List, Tuple
+from typing import Callable, List, Mapping, Tuple
 
 import cv2
 import numpy as np
 import openvino.runtime as ov
-from openvino.runtime.utils.data_helpers.wrappers import OVDict
 from tqdm import tqdm
 
 from openvino_xai.common.utils import IdentityPreprocessFN, scaling
@@ -32,7 +31,7 @@ class RISE(BlackBoxXAIMethod):
     def __init__(
         self,
         model: ov.Model,
-        postprocess_fn: Callable[[OVDict], np.ndarray],
+        postprocess_fn: Callable[[Mapping], np.ndarray],
         preprocess_fn: Callable[[np.ndarray], np.ndarray] = IdentityPreprocessFN(),
         device_name: str = "CPU",
         prepare_model: bool = True,

@@ -2,11 +2,10 @@
 # SPDX-License-Identifier: Apache-2.0
 from enum import Enum
 from functools import partial
-from typing import Any, Callable, List, Tuple
+from typing import Any, Callable, List, Mapping, Tuple
 
 import cv2
 import numpy as np
-from openvino.runtime.utils.data_helpers.wrappers import OVDict
 
 from openvino_xai.common.utils import sigmoid, softmax
 
@@ -120,9 +119,9 @@ def get_preprocess_fn(
     )
 
 
-def postprocess_fn(x: OVDict, logit_name="logits") -> np.ndarray:
+def postprocess_fn(x: Mapping, logit_name="logits") -> np.ndarray:
     """Postprocess function."""
-    return x[logit_name]
+    return x.get(logit_name, x[0])  # Models from OVC has no output names at times
 
 
 def get_postprocess_fn(logit_name="logits") -> Callable[[], np.ndarray]:

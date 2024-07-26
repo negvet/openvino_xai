@@ -2,11 +2,10 @@
 # SPDX-License-Identifier: Apache-2.0
 
 from abc import ABC, abstractmethod
-from typing import Callable, List
+from typing import Callable, List, Mapping
 
 import numpy as np
 import openvino.runtime as ov
-from openvino.runtime.utils.data_helpers.wrappers import OVDict
 
 from openvino_xai.common.parameters import Method, Task
 from openvino_xai.common.utils import IdentityPreprocessFN, logger
@@ -184,7 +183,7 @@ class BlackBoxMethodFactory(MethodFactory):
         cls,
         task: Task,
         model: ov.Model,
-        postprocess_fn: Callable[[OVDict], np.ndarray],
+        postprocess_fn: Callable[[Mapping], np.ndarray],
         preprocess_fn: Callable[[np.ndarray], np.ndarray] = IdentityPreprocessFN(),
         explain_method: Method | None = None,
         device_name: str = "CPU",
@@ -199,7 +198,7 @@ class BlackBoxMethodFactory(MethodFactory):
     @staticmethod
     def create_classification_method(
         model: ov.Model,
-        postprocess_fn: Callable[[OVDict], np.ndarray],
+        postprocess_fn: Callable[[Mapping], np.ndarray],
         preprocess_fn: Callable[[np.ndarray], np.ndarray] = IdentityPreprocessFN(),
         explain_method: Method | None = None,
         device_name: str = "CPU",
@@ -210,7 +209,7 @@ class BlackBoxMethodFactory(MethodFactory):
         :param model: OV IR model.
         :type model: ov.Model
         :param postprocess_fn: Preprocessing function that extract scores from IR model output.
-        :type postprocess_fn: Callable[[OVDict], np.ndarray]
+        :type postprocess_fn: Callable[[Mapping], np.ndarray]
         :param preprocess_fn: Preprocessing function, identity function by default
             (assume input images are already preprocessed by user).
         :type preprocess_fn: Callable[[np.ndarray], np.ndarray]
