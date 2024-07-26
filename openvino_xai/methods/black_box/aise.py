@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: Apache-2.0
 
 import collections
-from typing import Callable, List
+from typing import Callable, List, Tuple, Dict
 
 import math
 from scipy.optimize import direct, Bounds
@@ -14,33 +14,16 @@ from openvino_xai.common.utils import IdentityPreprocessFN, infer_size_from_imag
 from openvino_xai.methods.black_box.base import BlackBoxXAIMethod, Preset
 
 
-class GaussianPerturbationMask:
-    def __init__(self, input_size):
-        h = np.linspace(0, 1, input_size[0])
-        w = np.linspace(0, 1, input_size[1])
-        self.h, self.w = np.meshgrid(w, h)
-
-    def _gaussian_2d(self, gauss_params):
-        mh, mw, sigma = gauss_params
-        A = 1 / (2 * math.pi * sigma * sigma)
-        B = (self.h - mh) ** 2 / (2 * sigma ** 2)
-        C = (self.w - mw) ** 2 / (2 * sigma ** 2)
-        return A * np.exp(-(B + C))
-
-    def generate_kernel_mask(self, gauss_param, scale=1.0):
-        kernel = self._gaussian_2d(gauss_param)
-        return (kernel / kernel.max()) * scale
-
-
 class AISE(BlackBoxXAIMethod):
     """AISE explains classification models in black-box mode using 
     AISE: Adaptive Input Sampling for Explanation of Black-box Models.
+    (TODO (negvet): add link to the paper.)
 
     :param model: OpenVINO model.
     :type model: ov.Model
-    :param postprocess_fn: Preprocessing function that extract scores from IR model output.
+    :param postprocess_fn: Post-processing function that extract scores from IR model output.
     :type postprocess_fn: Callable[[OVDict], np.ndarray]
-    :param preprocess_fn: Preprocessing function, identity function by default
+    :param preprocess_fn: Pre-processing function, identity function by default
         (assume input images are already preprocessed by user).
     :type preprocess_fn: Callable[[np.ndarray], np.ndarray]
     :param device_name: Device type name.
@@ -60,15 +43,15 @@ class AISE(BlackBoxXAIMethod):
         super().__init__(model=model, preprocess_fn=preprocess_fn, device_name=device_name)
         self.postprocess_fn = postprocess_fn
 
-        # TODO: resete state ever run
         self.data_preprocessed = None
         self.target = None
         self.num_iterations_per_kernel = None
-        self.kernel_width = None
-        self.seed = None
-
-        self._kernel_params_hist = collections.defaultdict(list)
-        self._pred_score_hist = collections.defaultdict(list)
+        self.kernel_widths = None
+        self._current_kernel_width = None
+        self.solver_epsilon = None
+        self.locally_biased = None
+        self.kernel_params_hist = None
+        self.pred_score_hist = None
         self.input_size = None
         self._mask_generator = None
         
@@ -78,44 +61,55 @@ class AISE(BlackBoxXAIMethod):
     def generate_saliency_map(
         self,
         data: np.ndarray,
-        explain_target_indices: List[int] | None = None,
+        explain_target_indices: List[int],
         preset: Preset = Preset.BALANCE,
         num_iterations_per_kernel: int | None = None,
         kernel_widths: List[float] | np.ndarray | None = None,
-        seed: int = 0,
+        solver_epsilon: float = 0.1,
+        locally_biased: bool = False,
         scale_output: bool = True,
-    ):
+    ) -> Dict[int, np.ndarray]:
         """
-        Generates inference result of the RISE algorithm.
+        Generates inference result of the AISE algorithm.
 
         :param data: Input image.
         :type data: np.ndarray
         :param explain_target_indices: List of target indices to explain.
         :type explain_target_indices: List[int]
-        :param num_iterations_per_kernel: TBD.
+        :param preset: Speed-Quality preset, defines predefined configurations that manage speed-quality tradeoff.
+        :type preset: Preset
+        :param num_iterations_per_kernel: Number of iterations per kernel, defines compute budget.
         :type num_iterations_per_kernel: int
-        :param seed: TBD.
-        :type seed: int
+        :param kernel_widths: Kernel bandwidths.
+        :type kernel_widths: List[float] | np.ndarray
+        :param solver_epsilon: Solver epsilon of DIRECT optimizer.
+        :type solver_epsilon: float
+        :param locally_biased: Locally biased flag of DIRECT optimizer.
+        :type locally_biased: bool
         :param scale_output: Whether to scale output or not.
         :type scale_output: bool
         """
-        # TODO: support multiple explain_target_indices
-        if len(explain_target_indices) > 1:
-            raise ValueError
-
         self.data_preprocessed = self.preprocess_fn(data)
-        self.target = explain_target_indices[0]
+
         self._preset_parameters(preset, num_iterations_per_kernel, kernel_widths)
-        self.seed = seed
+
+        self.solver_epsilon = solver_epsilon
+        self.locally_biased = locally_biased
 
         self.input_size = infer_size_from_image(self.data_preprocessed)
         self._mask_generator = GaussianPerturbationMask(self.input_size)
         
-        saliency_maps = self._run_synchronous_explanation()
+        saliency_maps = {}
+        for target in explain_target_indices:
+            self.kernel_params_hist = collections.defaultdict(list)
+            self.pred_score_hist = collections.defaultdict(list)
 
-        if scale_output:
-            saliency_maps = scaling(saliency_maps)
-        return {explain_target_indices[0]: saliency_maps}
+            self.target = target
+            saliency_map_per_target = self._run_synchronous_explanation()
+            if scale_output:
+                saliency_map_per_target = scaling(saliency_map_per_target)
+            saliency_maps[target] = saliency_map_per_target
+        return saliency_maps
 
     def _preset_parameters(
             self, 
@@ -137,32 +131,27 @@ class AISE(BlackBoxXAIMethod):
         
         if num_iterations_per_kernel is not None:
             self.num_iterations_per_kernel = num_iterations_per_kernel
-        if num_iterations_per_kernel is not None:
+        if kernel_widths is not None:
             self.kernel_widths = kernel_widths
 
     def _run_synchronous_explanation(self) -> np.ndarray:
         for kernel_width in self.kernel_widths:
-            self._kernel_width = kernel_width
+            self._current_kernel_width = kernel_width
             self._run_optimization()
-
-        print('DIRECT:', 'num_iterations_per_kernel', self.num_iterations_per_kernel, 'kernel_widths', self.kernel_widths)
 
         saliency_map = self._kernel_density_estimation()
 
-        assert all(np.isclose(saliency_map[100][:5], np.array([0.14402176, 0.14759968, 0.15121181, 0.15485552, 0.15852812])))
+        # assert all(np.isclose(saliency_map[100][:5], np.array([0.16071111, 0.16760393, 0.17454123, 0.18150849, 0.1884909])))
 
         return saliency_map
 
     def _run_optimization(self):
-        # DIRECT params
-        # TODO: move to constructor
-        solver_epsilon = 0.1
-        locally_biased = False
+        """Run DIRECT optimizer by default."""
         _ = direct(func=self._objective_function,
                     bounds=Bounds([0.0, 0.0], [1.0, 1.0]),
-                    eps=solver_epsilon,
+                    eps=self.solver_epsilon,
                     maxfun=self.num_iterations_per_kernel,
-                    locally_biased=locally_biased,
+                    locally_biased=self.locally_biased,
                     )
 
     def _objective_function(self, args) -> float:
@@ -173,8 +162,8 @@ class AISE(BlackBoxXAIMethod):
             - deletion
         """
         mh, mw = args
-        kernel_params = (mh, mw, self._kernel_width)
-        self._kernel_params_hist[self._kernel_width].append(kernel_params)
+        kernel_params = (mh, mw, self._current_kernel_width)
+        self.kernel_params_hist[self._current_kernel_width].append(kernel_params)
 
         kernel_mask = self._mask_generator.generate_kernel_mask(kernel_params)
         kernel_mask = np.clip(kernel_mask, 0, 1)
@@ -183,15 +172,13 @@ class AISE(BlackBoxXAIMethod):
         pred_score_preserve = self._get_score(data_perturbed_preserve)
 
         data_perturbed_delete = self.data_preprocessed * (1 - kernel_mask)
-        pred_score_del = self._get_score(data_perturbed_delete)
+        pred_score_delete = self._get_score(data_perturbed_delete)
 
-        loss = (pred_score_preserve - pred_score_del)
+        loss = (pred_score_preserve - pred_score_delete)
 
-        self._pred_score_hist[self._kernel_width].append(pred_score_preserve)
-        # self._pred_score_hist[self._kernel_width].append(pred_score_preserve - pred_score_del)  # TODO: ?, max(0, ..)
-        # self._pred_score_hist[self._kernel_width].append(max(0, pred_score_preserve - pred_score_del))  # TODO: ?, max(0, ..)
+        self.pred_score_hist[self._current_kernel_width].append(pred_score_preserve - pred_score_delete)
 
-        loss *= -1  # minimizing
+        loss *= -1  # Objective: minimize
         return loss
 
     def _get_score(self, data_perturbed: np.array) -> float:
@@ -209,13 +196,38 @@ class AISE(BlackBoxXAIMethod):
         for kernel_index, kernel_width in enumerate(self.kernel_widths):
             kernel_masks_weighted = np.zeros(self.input_size)
             for i in range(self.num_iterations_per_kernel):
-                kernel_params = self._kernel_params_hist[kernel_width][i]
+                kernel_params = self.kernel_params_hist[kernel_width][i]
                 kernel_mask = self._mask_generator.generate_kernel_mask(kernel_params)
-                score = self._pred_score_hist[kernel_width][i]
+                score = self.pred_score_hist[kernel_width][i]
                 kernel_masks_weighted += kernel_mask * score
             kernel_masks_weighted = kernel_masks_weighted / kernel_masks_weighted.max()
             saliency_map_per_kernel[kernel_index] = kernel_masks_weighted
 
-        saliency_map = saliency_map_per_kernel.sum(axis=0)  # TODO: softmax?
+        saliency_map = saliency_map_per_kernel.sum(axis=0)
         saliency_map /= saliency_map.max()
         return saliency_map
+
+
+class GaussianPerturbationMask:
+    """
+    Perturbation mask generator.
+    """
+    
+    def __init__(self, input_size: Tuple[int, int]):
+        h = np.linspace(0, 1, input_size[0])
+        w = np.linspace(0, 1, input_size[1])
+        self.h, self.w = np.meshgrid(w, h)
+
+    def _get_2d_gaussian(self, gauss_params: Tuple[float, float, float]) -> np.ndarray:
+        mh, mw, sigma = gauss_params
+        A = 1 / (2 * math.pi * sigma * sigma)
+        B = (self.h - mh) ** 2 / (2 * sigma ** 2)
+        C = (self.w - mw) ** 2 / (2 * sigma ** 2)
+        return A * np.exp(-(B + C))
+
+    def generate_kernel_mask(self, gauss_param: Tuple[float, float, float], scale: float = 1.0):
+        """
+        Generates 2D gaussian mask.
+        """
+        gaussian = self._get_2d_gaussian(gauss_param)
+        return (gaussian / gaussian.max()) * scale

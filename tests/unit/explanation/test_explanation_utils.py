@@ -4,11 +4,11 @@
 import numpy as np
 import pytest
 
+from openvino_xai.common.utils import is_bhwc_layout
 from openvino_xai.explainer.utils import (
     ActivationType,
     get_explain_target_indices,
     get_score,
-    is_bhwc_layout,
 )
 
 VOC_NAMES = [
