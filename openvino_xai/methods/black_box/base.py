@@ -16,6 +16,12 @@ class BlackBoxXAIMethod(MethodBase):
             self.load_model()
         return self._model
 
+    def get_num_classes(self, data_preprocessed):
+        forward_output = self.model_forward(data_preprocessed, preprocess=False)
+        logits = self.postprocess_fn(forward_output)
+        _, num_classes = logits.shape
+        return num_classes
+
 
 class Preset(Enum):
     """

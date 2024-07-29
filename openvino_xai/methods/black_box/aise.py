@@ -13,6 +13,7 @@ from scipy.optimize import Bounds, direct
 from openvino_xai.common.utils import (
     IdentityPreprocessFN,
     infer_size_from_image,
+    logger,
     scaling,
     sigmoid,
 )
@@ -66,7 +67,7 @@ class AISE(BlackBoxXAIMethod):
     def generate_saliency_map(  # type: ignore
         self,
         data: np.ndarray,
-        explain_target_indices: List[int],
+        explain_target_indices: List[int] | None,
         preset: Preset = Preset.BALANCE,
         num_iterations_per_kernel: int | None = None,
         kernel_widths: List[float] | np.ndarray | None = None,
@@ -76,6 +77,7 @@ class AISE(BlackBoxXAIMethod):
     ) -> Dict[int, np.ndarray]:
         """
         Generates inference result of the AISE algorithm.
+        Optimized for per class saliency map generation. Not effcient for large number of classes.
 
         :param data: Input image.
         :type data: np.ndarray
@@ -95,6 +97,12 @@ class AISE(BlackBoxXAIMethod):
         :type scale_output: bool
         """
         self.data_preprocessed = self.preprocess_fn(data)
+
+        if explain_target_indices is None:
+            num_classes = self.get_num_classes(self.data_preprocessed)
+            if num_classes > 10:
+                logger.info(f"num_classes = {num_classes}, which might take significant time to process.")
+            explain_target_indices = list(range(num_classes))
 
         self._preset_parameters(preset, num_iterations_per_kernel, kernel_widths)
 

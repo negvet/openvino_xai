@@ -101,9 +101,7 @@ class RISE(BlackBoxXAIMethod):
 
         input_size = data_preprocessed.shape[1:3] if is_bhwc_layout(data_preprocessed) else data_preprocessed.shape[2:4]
 
-        forward_output = self.model_forward(data_preprocessed, preprocess=False)
-        logits = self.postprocess_fn(forward_output)
-        _, num_classes = logits.shape
+        num_classes = self.get_num_classes(data_preprocessed)
 
         if target_classes is None:
             num_targets = num_classes
