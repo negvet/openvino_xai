@@ -113,7 +113,14 @@ class TestExplainer:
             False,
         ],
     )
-    def test_explainer_all_classes_aise(self, explain_all_classes):
+    @pytest.mark.parametrize(
+        "explain_method",
+        [
+            Method.AISE,
+            Method.RISE,
+        ],
+    )
+    def test_explainer_all_classes_black_box(self, explain_all_classes, explain_method):
         retrieve_otx_model(self.data_dir, MODEL_NAME)
         model_path = self.data_dir / "otx_models" / (MODEL_NAME + ".xml")
         model = ov.Core().read_model(model_path)
@@ -124,20 +131,25 @@ class TestExplainer:
             preprocess_fn=self.preprocess_fn,
             postprocess_fn=get_postprocess_fn(),
             explain_mode=ExplainMode.BLACKBOX,
-            explain_method=Method.AISE,
+            explain_method=explain_method,
         )
+
+        if explain_method == Method.AISE:
+            kwargs = {"num_iterations_per_kernel": 2}
+        else:
+            kwargs = {"num_masks": 2}
 
         if explain_all_classes:
             explanation = explainer(
                 self.image,
                 targets=-1,
-                num_iterations_per_kernel=2,
+                **kwargs,
             )
         else:
             explanation = explainer(
                 self.image,
                 targets=[11, 14],
-                preset=Preset.SPEED,
+                **kwargs,
             )
 
         if explain_all_classes:
