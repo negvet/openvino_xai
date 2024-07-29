@@ -151,12 +151,7 @@ class AISE(BlackBoxXAIMethod):
         for kernel_width in self.kernel_widths:
             self._current_kernel_width = kernel_width
             self._run_optimization()
-
-        saliency_map = self._kernel_density_estimation()
-
-        # assert all(np.isclose(saliency_map[100][:5], np.array([0.16071111, 0.16760393, 0.17454123, 0.18150849, 0.1884909])))
-
-        return saliency_map
+        return self._kernel_density_estimation()
 
     def _run_optimization(self):
         """Run DIRECT optimizer by default."""
