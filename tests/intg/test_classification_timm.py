@@ -435,7 +435,7 @@ class TestImageClassificationTimm:
             targets=[target_class],
             resize=False,
             colormap=False,
-            num_masks=2,  # minimal iterations for feature test
+            num_iterations_per_kernel=2,  # minimal iterations for feature test
         )
 
         assert explanation is not None
