@@ -80,6 +80,8 @@ class Explanation:
 
     @staticmethod
     def _check_saliency_map(saliency_map: np.ndarray):
+        if saliency_map is None:
+            raise RuntimeError("Saliency map is None.")
         if saliency_map.size == 0:
             raise RuntimeError("Saliency map is zero size array.")
         if saliency_map.shape[0] > 1:

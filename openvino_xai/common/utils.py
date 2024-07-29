@@ -123,12 +123,16 @@ def format_to_bhwc(image: np.ndarray) -> np.ndarray:
 
 def infer_size_from_image(image: np.ndarray) -> Tuple[int, int]:
     """Estimate image size."""
+    if image.ndim not in [2, 3, 4]:
+        raise ValueError(f"Supports only two, three, and four dimensional image, but got {image.ndim}.")
+
     if image.ndim == 2:
         return image.shape
 
-    image = format_to_bhwc(image)
-    if image.ndim == 4:
-        _, h, w, _ = image.shape
+    if image.ndim == 3:
+        image = np.expand_dims(image, axis=0)
+    _, dim0, dim1, dim2 = image.shape
+    if dim0 > dim2 and dim1 > dim2:  # bhwc layout:
+        return dim0, dim1
     else:
-        raise ValueError(f"Supports only two, three, and four dimensional image, but got {image.ndim}.")
-    return h, w
+        return dim1, dim2
