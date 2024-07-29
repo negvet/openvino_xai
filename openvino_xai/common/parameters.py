@@ -27,6 +27,7 @@ class Method(Enum):
         VITRECIPROCAM - VITReciproCAM method.
         DETCLASSPROBABILITYMAP - DetClassProbabilityMap method.
         RISE - RISE method.
+        AISE - AISE method.
     """
 
     ACTIVATIONMAP = "activationmap"
@@ -44,11 +45,13 @@ WhiteBoxXAIMethods = {
 }
 BlackBoxXAIMethods = {
     Method.RISE,
+    Method.AISE,
 }
 ClassificationXAIMethods = {
     Method.ACTIVATIONMAP,
     Method.RECIPROCAM,
     Method.RISE,
+    Method.AISE,
 }
 DetectionXAIMethods = {
     Method.DETCLASSPROBABILITYMAP,

@@ -209,6 +209,7 @@ class BlackBoxMethodFactory(MethodFactory):
         **kwargs,
     ) -> BlackBoxXAIMethod:
         """Generates instance of the classification black-box method class.
+        Using AISE as a default method.
 
         :param model: OV IR model.
         :type model: ov.Model
