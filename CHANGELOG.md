@@ -8,7 +8,7 @@
 
 ### What's Changed
 
-* Enable AISE: Adaptive Input Sampling for Explanation of Black-box Models by @negvet in https://github.com/intel-sandbox/openvino_xai/pull/49
+* Enable AISE: Adaptive Input Sampling for Explanation of Black-box Models by @negvet in https://github.com/openvinotoolkit/openvino_xai/pull/49
 
 ### Known Issues
 

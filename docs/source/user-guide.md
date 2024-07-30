@@ -247,10 +247,12 @@ explanation.save("output_path", "name")
 Black-box mode does not update the model (treating the model as a black box).
 Black-box approaches are based on the perturbation of the input data and measurement of the model's output change.
 
+For black-box mode we support 2 algorithms: **AISE** (by default) and [**RISE**](https://arxiv.org/abs/1806.07421). AISE is more effective for generating saliency maps for a few specific classes. RISE - to generate maps for all classes at once.
+
 Pros:
 - **Flexible** - can be applied to any custom model.
 Cons:
-- **Significant computational overhead** - black-nox requires hundreds or thousands of forward passes.
+- **Computational overhead** - black-box requires hundreds or thousands of forward passes.
 
 `preprocess_fn` (or preprocessed images) and `postprocess_fn` are required to be provided by the user for black-box mode.
 
