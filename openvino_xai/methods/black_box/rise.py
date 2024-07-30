@@ -17,9 +17,9 @@ class RISE(BlackBoxXAIMethod):
 
     :param model: OpenVINO model.
     :type model: ov.Model
-    :param postprocess_fn: Preprocessing function that extract scores from IR model output.
-    :type postprocess_fn: Callable[[Mapping], np.ndarray]
-    :param preprocess_fn: Preprocessing function, identity function by default
+    :param postprocess_fn: Post-processing function that extract scores from IR model output.
+    :type postprocess_fn: Callable[[OVDict], np.ndarray]
+    :param preprocess_fn: Pre-processing function, identity function by default
         (assume input images are already preprocessed by user).
     :type preprocess_fn: Callable[[np.ndarray], np.ndarray]
     :param device_name: Device type name.
@@ -42,11 +42,6 @@ class RISE(BlackBoxXAIMethod):
         if prepare_model:
             self.prepare_model()
 
-    def prepare_model(self, load_model: bool = True) -> ov.Model:
-        if load_model:
-            self.load_model()
-        return self._model
-
     def generate_saliency_map(
         self,
         data: np.ndarray,
@@ -56,7 +51,7 @@ class RISE(BlackBoxXAIMethod):
         prob: float = 0.5,
         seed: int = 0,
         scale_output: bool = True,
-    ):
+    ) -> np.ndarray:
         """
         Generates inference result of the RISE algorithm.
 
@@ -102,13 +97,11 @@ class RISE(BlackBoxXAIMethod):
         prob: float,
         seed: int,
     ) -> np.ndarray:
-        from openvino_xai.explainer.utils import is_bhwc_layout
+        from openvino_xai.common.utils import is_bhwc_layout
 
         input_size = data_preprocessed.shape[1:3] if is_bhwc_layout(data_preprocessed) else data_preprocessed.shape[2:4]
 
-        forward_output = self.model_forward(data_preprocessed, preprocess=False)
-        logits = self.postprocess_fn(forward_output)
-        _, num_classes = logits.shape
+        num_classes = self.get_num_classes(data_preprocessed)
 
         if target_classes is None:
             num_targets = num_classes
