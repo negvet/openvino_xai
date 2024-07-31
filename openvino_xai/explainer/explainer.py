@@ -19,7 +19,7 @@ from openvino_xai.explainer.explanation import Explanation
 from openvino_xai.explainer.utils import (
     convert_targets_to_numpy,
     explains_all,
-    get_explain_target_indices,
+    get_target_indices,
 )
 from openvino_xai.explainer.visualizer import Visualizer
 from openvino_xai.methods.base import MethodBase
@@ -205,16 +205,16 @@ class Explainer:
         """
         targets = convert_targets_to_numpy(targets)
 
-        explain_target_indices = None
+        target_indices = None
         if isinstance(self.method, BlackBoxXAIMethod) and not explains_all(targets):
-            explain_target_indices = get_explain_target_indices(
+            target_indices = get_target_indices(
                 targets,
                 label_names,
             )
 
         saliency_map = self.method.generate_saliency_map(
             data,
-            explain_target_indices=explain_target_indices,  # type: ignore
+            target_indices=target_indices,  # type: ignore
             **kwargs,
         )
 

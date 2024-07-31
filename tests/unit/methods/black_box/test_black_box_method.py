@@ -32,14 +32,14 @@ class InputSampling:
 
 
 class TestAISE(InputSampling):
-    @pytest.mark.parametrize("explain_target_indices", [[0], [0, 1]])
-    def test_run(self, explain_target_indices, fxt_data_root: Path):
+    @pytest.mark.parametrize("target_indices", [[0], [0, 1]])
+    def test_run(self, target_indices, fxt_data_root: Path):
         model = self.get_model(fxt_data_root)
 
         aise_method = AISE(model, self.postprocess_fn, self.preprocess_fn)
         saliency_map = aise_method.generate_saliency_map(
             data=self.image,
-            explain_target_indices=explain_target_indices,
+            target_indices=target_indices,
             preset=Preset.SPEED,
             num_iterations_per_kernel=10,
             kernel_widths=[0.1],
@@ -48,8 +48,8 @@ class TestAISE(InputSampling):
         assert aise_method.kernel_widths == [0.1]
 
         assert isinstance(saliency_map, dict)
-        assert len(saliency_map) == len(explain_target_indices)
-        for target in explain_target_indices:
+        assert len(saliency_map) == len(target_indices)
+        for target in target_indices:
             assert target in saliency_map
 
         ref_target = 0
@@ -63,14 +63,14 @@ class TestAISE(InputSampling):
 
 
 class TestRISE(InputSampling):
-    @pytest.mark.parametrize("explain_target_indices", [[0], None])
-    def test_run(self, explain_target_indices, fxt_data_root: Path):
+    @pytest.mark.parametrize("target_indices", [[0], None])
+    def test_run(self, target_indices, fxt_data_root: Path):
         model = self.get_model(fxt_data_root)
 
         rise_method = RISE(model, self.postprocess_fn, self.preprocess_fn)
         saliency_map = rise_method.generate_saliency_map(
             self.image,
-            explain_target_indices,
+            target_indices,
             num_masks=5,
         )
 

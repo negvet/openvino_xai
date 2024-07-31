@@ -28,9 +28,9 @@ class Preset(Enum):
     Enum representing the different presets:
 
     Contains the following values:
-        SPEED - Prioritize getting results faster.
+        SPEED - Prioritizes getting results faster.
         BALANCE - Balance between speed and quality.
-        QUALITY - Prioritize high quality results.
+        QUALITY - Prioritizes getting high quality results.
     """
 
     SPEED = "speed"

@@ -22,7 +22,7 @@ from openvino_xai.methods.black_box.base import BlackBoxXAIMethod, Preset
 
 class AISE(BlackBoxXAIMethod):
     """AISE explains classification models in black-box mode using
-    AISE: Adaptive Input Sampling for Explanation of Black-box Models.
+    AISE: Adaptive Input Sampling for Explanation of Black-box Models
     (TODO (negvet): add link to the paper.)
 
     :param model: OpenVINO model.
@@ -67,7 +67,7 @@ class AISE(BlackBoxXAIMethod):
     def generate_saliency_map(  # type: ignore
         self,
         data: np.ndarray,
-        explain_target_indices: List[int] | None,
+        target_indices: List[int] | None,
         preset: Preset = Preset.BALANCE,
         num_iterations_per_kernel: int | None = None,
         kernel_widths: List[float] | np.ndarray | None = None,
@@ -81,8 +81,8 @@ class AISE(BlackBoxXAIMethod):
 
         :param data: Input image.
         :type data: np.ndarray
-        :param explain_target_indices: List of target indices to explain.
-        :type explain_target_indices: List[int]
+        :param target_indices: List of target indices to explain.
+        :type target_indices: List[int]
         :param preset: Speed-Quality preset, defines predefined configurations that manage speed-quality tradeoff.
         :type preset: Preset
         :param num_iterations_per_kernel: Number of iterations per kernel, defines compute budget.
@@ -98,11 +98,11 @@ class AISE(BlackBoxXAIMethod):
         """
         self.data_preprocessed = self.preprocess_fn(data)
 
-        if explain_target_indices is None:
+        if target_indices is None:
             num_classes = self.get_num_classes(self.data_preprocessed)
             if num_classes > 10:
                 logger.info(f"num_classes = {num_classes}, which might take significant time to process.")
-            explain_target_indices = list(range(num_classes))
+            target_indices = list(range(num_classes))
 
         self._preset_parameters(preset, num_iterations_per_kernel, kernel_widths)
 
@@ -113,7 +113,7 @@ class AISE(BlackBoxXAIMethod):
         self._mask_generator = GaussianPerturbationMask(self.input_size)
 
         saliency_maps = {}
-        for target in explain_target_indices:
+        for target in target_indices:
             self.kernel_params_hist = collections.defaultdict(list)
             self.pred_score_hist = collections.defaultdict(list)
 

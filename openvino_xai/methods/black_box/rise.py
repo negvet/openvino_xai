@@ -9,11 +9,13 @@ import openvino.runtime as ov
 from tqdm import tqdm
 
 from openvino_xai.common.utils import IdentityPreprocessFN, scaling
-from openvino_xai.methods.black_box.base import BlackBoxXAIMethod
+from openvino_xai.methods.black_box.base import BlackBoxXAIMethod, Preset
 
 
 class RISE(BlackBoxXAIMethod):
-    """RISE explains classification models in black-box mode using RISE (https://arxiv.org/abs/1806.07421).
+    """RISE explains classification models in black-box mode using 
+    RISE: Randomized Input Sampling for Explanation of Black-box Models
+    (https://arxiv.org/abs/1806.07421).
 
     :param model: OpenVINO model.
     :type model: ov.Model
@@ -45,8 +47,9 @@ class RISE(BlackBoxXAIMethod):
     def generate_saliency_map(
         self,
         data: np.ndarray,
-        explain_target_indices: List[int] | None = None,
-        num_masks: int = 5000,
+        target_indices: List[int] | None = None,
+        preset: Preset = Preset.BALANCE,
+        num_masks: int | None = None,
         num_cells: int = 8,
         prob: float = 0.5,
         seed: int = 0,
@@ -57,8 +60,10 @@ class RISE(BlackBoxXAIMethod):
 
         :param data: Input image.
         :type data: np.ndarray
-        :param explain_target_indices: List of target indices to explain.
-        :type explain_target_indices: List[int]
+        :param target_indices: List of target indices to explain.
+        :type target_indices: List[int]
+        :param preset: Speed-Quality preset, defines predefined configurations that manage speed-quality tradeoff.
+        :type preset: Preset
         :param num_masks: Number of generated masks to aggregate.
         :type num_masks: int
         :param num_cells: Number of cells for low-dimensional RISE
@@ -74,9 +79,12 @@ class RISE(BlackBoxXAIMethod):
         """
         data_preprocessed = self.preprocess_fn(data)
 
+        if num_masks is None:
+            num_masks = self._preset_parameters(preset)
+
         saliency_maps = self._run_synchronous_explanation(
             data_preprocessed,
-            explain_target_indices,
+            target_indices,
             num_masks,
             num_cells,
             prob,
@@ -87,6 +95,19 @@ class RISE(BlackBoxXAIMethod):
             saliency_maps = scaling(saliency_maps)
         saliency_maps = np.expand_dims(saliency_maps, axis=0)
         return saliency_maps
+
+    def _preset_parameters(
+        self,
+        preset: Preset,
+    ) -> int:
+        if preset == Preset.SPEED:
+            return 2000
+        elif preset == Preset.BALANCE:
+            return 5000
+        elif preset == Preset.QUALITY:
+            return 8000
+        else:
+            raise ValueError(f"Preset {preset} is not supported.")
 
     def _run_synchronous_explanation(
         self,
