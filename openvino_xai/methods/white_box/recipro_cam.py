@@ -353,3 +353,128 @@ class ViTReciproCAM(FeatureMapPerturbationBase):
             feature_map_repeated = opset.tile(target_node_ori.output(0), (h * w, 1, 1))  # e.g. 784x785x768
             mosaic_feature_map = opset.multiply(feature_map_repeated, mosaic_feature_map_mask)
         return mosaic_feature_map
+
+
+class RISEFM(FeatureMapPerturbationBase):
+    """
+    Implements Recipro-CAM for CNN models.
+
+    :param model: OpenVINO model.
+    :type model: ov.Model
+    :param preprocess_fn: Preprocessing function, identity function by default
+        (assume input images are already preprocessed by user).
+    :type preprocess_fn: Callable[[np.ndarray], np.ndarray]
+    :parameter target_layer: Target layer (node) name after which the XAI branch will be inserted.
+    :type target_layer: str
+    :param embed_scaling: Whether to scale output or not.
+    :type embed_scaling: bool
+    :param device_name: Device type name.
+    :type device_name: str
+    :param prepare_model: Loading (compiling) the model prior to inference.
+    :type prepare_model: bool
+    """
+
+    def __init__(
+        self,
+        model: ov.Model,
+        preprocess_fn: Callable[[np.ndarray], np.ndarray] = IdentityPreprocessFN(),
+        target_layer: str | None = None,
+        embed_scaling: bool = True,
+        device_name: str = "CPU",
+        prepare_model: bool = True,
+    ):
+        super().__init__(
+            model=model,
+            preprocess_fn=preprocess_fn,
+            target_layer=target_layer,
+            embed_scaling=embed_scaling,
+            device_name=device_name,
+        )
+        self.model_type = ModelType.CNN
+
+        if prepare_model:
+            self.prepare_model()
+
+    def _get_saliency_map(self, model_clone: ov.Model) -> ov.Node:
+        target_node_ori = IRParserCls.get_target_node(self._model_ori, self.model_type, self._target_layer)
+        target_node_name = self._target_layer or target_node_ori.get_friendly_name()
+        post_target_node_clone = IRParserCls.get_post_target_node(model_clone, self.model_type, target_node_name)
+
+        logit_node = IRParserCls.get_logit_node(self._model_ori, search_softmax=True)
+        logit_node_clone_model = IRParserCls.get_logit_node(model_clone, search_softmax=True)
+
+        _, num_classes = logit_node.get_output_partial_shape(0)
+
+        if not logit_node_clone_model.output(0).partial_shape[0].is_dynamic:
+            raise ValueError(
+                "Batch shape of the output should be dynamic, but it is static. "
+                "Make sure that the dynamic inputs can propagate through the model graph."
+            )
+
+        _, c, h, w = target_node_ori.get_output_partial_shape(0)
+        c, h, w = c.get_length(), h.get_length(), w.get_length()
+        if not self._is_valid_layout(c, h, w):
+            raise ValueError(f"ReciproCAM supports only NCHW layout, but got NHWC, with shape: [N, {c}, {h}, {w}]")
+
+        num_masks = 5000
+        feature_map_repeated = opset.tile(target_node_ori.output(0), (num_masks, 1, 1, 1))
+
+        import math
+
+        import cv2
+
+        def generate_mask(image_size, grid_size, prob_thresh):
+            image_w, image_h = image_size
+            grid_w, grid_h = grid_size
+            cell_w, cell_h = math.ceil(image_w / grid_w), math.ceil(image_h / grid_h)
+            up_w, up_h = (grid_w + 1) * cell_w, (grid_h + 1) * cell_h
+            mask = (np.random.uniform(0, 1, size=(grid_h, grid_w)) < prob_thresh).astype(np.float32)
+            mask = cv2.resize(mask, (up_w, up_h), interpolation=cv2.INTER_LINEAR)
+            offset_w = np.random.randint(0, cell_w)
+            offset_h = np.random.randint(0, cell_h)
+            mask = mask[offset_h : offset_h + image_h, offset_w : offset_w + image_w]
+            return mask
+
+        def generate_mask_fm(grid_size=(11, 11), prob_thresh=0.5):
+            image_w, image_h = w, h
+            max_grid_size = min(image_h, grid_size[0])
+            grid_size = max_grid_size, max_grid_size
+            mask = generate_mask(image_size=(image_w, image_h), grid_size=grid_size, prob_thresh=prob_thresh)
+            return mask
+
+        mosaic_feature_map_mask = np.zeros((num_masks, 1, h, w), dtype=np.float32)
+        for mask_id in range(num_masks):
+            mosaic_feature_map_mask[mask_id] = generate_mask_fm()
+        mosaic_feature_map_mask = opset.constant(mosaic_feature_map_mask)
+
+        mosaic_feature_map = opset.multiply(feature_map_repeated, mosaic_feature_map_mask)
+
+        # feature_map_repeated = opset.tile(target_node_ori.output(0), (h * w, 1, 1, 1))
+        # mosaic_feature_map_mask = np.zeros((h * w, c, h, w), dtype=np.float32)
+        # tmp = np.arange(h * w)
+        # spacial_order = np.reshape(tmp, (h, w))
+        # for i in range(h):
+        #     for j in range(w):
+        #         k = spacial_order[i, j]
+        #         mosaic_feature_map_mask[k, :, i, j] = np.ones((c))
+        # mosaic_feature_map_mask = opset.constant(mosaic_feature_map_mask)
+        # mosaic_feature_map = opset.multiply(feature_map_repeated, mosaic_feature_map_mask)
+
+        for node in post_target_node_clone:
+            node.input(0).replace_source_output(mosaic_feature_map.output(0))
+        mosaic_prediction = logit_node_clone_model
+
+        mosaic_prediction = opset.reshape(mosaic_prediction, (num_masks, num_classes.get_length(), 1, 1), False)
+        weighted_masks = opset.multiply(mosaic_prediction, mosaic_feature_map_mask)
+        saliency_maps = opset.reduce_sum(weighted_masks, 0)
+        saliency_maps = opset.reshape(saliency_maps, (1, num_classes.get_length(), h, w), False)
+        return saliency_maps
+
+        tmp = opset.transpose(mosaic_prediction.output(0), (1, 0))
+        _, num_classes = logit_node.get_output_partial_shape(0)
+        saliency_maps = opset.reshape(tmp, (1, num_classes.get_length(), h, w), False)
+        return saliency_maps
+
+    @staticmethod
+    def _is_valid_layout(c: int, h: int, w: int):
+        return h < c and w < c
