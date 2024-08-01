@@ -13,7 +13,7 @@ from openvino_xai.methods.black_box.base import BlackBoxXAIMethod, Preset
 
 
 class RISE(BlackBoxXAIMethod):
-    """RISE explains classification models in black-box mode using 
+    """RISE explains classification models in black-box mode using
     RISE: Randomized Input Sampling for Explanation of Black-box Models
     (https://arxiv.org/abs/1806.07421).
 
@@ -79,8 +79,7 @@ class RISE(BlackBoxXAIMethod):
         """
         data_preprocessed = self.preprocess_fn(data)
 
-        if num_masks is None:
-            num_masks = self._preset_parameters(preset)
+        num_masks = self._preset_parameters(preset, num_masks)
 
         saliency_maps = self._run_synchronous_explanation(
             data_preprocessed,
@@ -96,10 +95,14 @@ class RISE(BlackBoxXAIMethod):
         saliency_maps = np.expand_dims(saliency_maps, axis=0)
         return saliency_maps
 
+    @staticmethod
     def _preset_parameters(
-        self,
         preset: Preset,
+        num_masks: int | None = None,
     ) -> int:
+        if num_masks is not None:
+            return num_masks
+
         if preset == Preset.SPEED:
             return 2000
         elif preset == Preset.BALANCE:

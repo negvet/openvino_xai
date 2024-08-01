@@ -5,11 +5,7 @@ import numpy as np
 import pytest
 
 from openvino_xai.common.utils import is_bhwc_layout
-from openvino_xai.explainer.utils import (
-    ActivationType,
-    get_target_indices,
-    get_score,
-)
+from openvino_xai.explainer.utils import ActivationType, get_score, get_target_indices
 
 VOC_NAMES = [
     "aeroplane",

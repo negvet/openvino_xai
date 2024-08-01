@@ -1,6 +1,7 @@
 # Copyright (C) 2023-2024 Intel Corporation
 # SPDX-License-Identifier: Apache-2.0
 
+import time
 from pathlib import Path
 
 import cv2
@@ -29,6 +30,13 @@ class InputSampling:
         retrieve_otx_model(fxt_data_root, DEFAULT_CLS_MODEL)
         model_path = fxt_data_root / "otx_models" / (DEFAULT_CLS_MODEL + ".xml")
         return ov.Core().read_model(model_path)
+
+    def _generate_with_preset(self, method, preset):
+        _ = method.generate_saliency_map(
+            data=self.image,
+            target_indices=[1],
+            preset=preset,
+        )
 
 
 class TestAISE(InputSampling):
@@ -61,6 +69,27 @@ class TestAISE(InputSampling):
         ref_sal_vals = np.array([68, 69, 69, 69, 70, 70, 71, 71, 72, 72], dtype=np.uint8)
         assert np.all(np.abs(actual_sal_vals - ref_sal_vals) <= 1)
 
+    def test_preset(self, fxt_data_root: Path):
+        model = self.get_model(fxt_data_root)
+        method = AISE(model, self.postprocess_fn, self.preprocess_fn)
+
+        tic = time.time()
+        self._generate_with_preset(method, Preset.SPEED)
+        toc = time.time()
+        time_speed = toc - tic
+
+        tic = time.time()
+        self._generate_with_preset(method, Preset.BALANCE)
+        toc = time.time()
+        time_balance = toc - tic
+
+        tic = time.time()
+        self._generate_with_preset(method, Preset.QUALITY)
+        toc = time.time()
+        time_quality = toc - tic
+
+        assert time_speed < time_balance < time_quality
+
 
 class TestRISE(InputSampling):
     @pytest.mark.parametrize("target_indices", [[0], None])
@@ -81,3 +110,19 @@ class TestRISE(InputSampling):
         actual_sal_vals = saliency_map[0][0][0, :10].astype(np.int16)
         ref_sal_vals = np.array([246, 241, 236, 231, 226, 221, 216, 211, 205, 197], dtype=np.uint8)
         assert np.all(np.abs(actual_sal_vals - ref_sal_vals) <= 1)
+
+    def test_preset(self, fxt_data_root: Path):
+        model = self.get_model(fxt_data_root)
+        method = RISE(model, self.postprocess_fn, self.preprocess_fn)
+
+        tic = time.time()
+        self._generate_with_preset(method, Preset.SPEED)
+        toc = time.time()
+        time_speed = toc - tic
+
+        tic = time.time()
+        self._generate_with_preset(method, Preset.BALANCE)
+        toc = time.time()
+        time_balance = toc - tic
+
+        assert time_speed < time_balance

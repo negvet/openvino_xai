@@ -104,7 +104,11 @@ class AISE(BlackBoxXAIMethod):
                 logger.info(f"num_classes = {num_classes}, which might take significant time to process.")
             target_indices = list(range(num_classes))
 
-        self._preset_parameters(preset, num_iterations_per_kernel, kernel_widths)
+        self.num_iterations_per_kernel, self.kernel_widths = self._preset_parameters(
+            preset,
+            num_iterations_per_kernel,
+            kernel_widths,
+            )
 
         self.solver_epsilon = solver_epsilon
         self.locally_biased = locally_biased
@@ -124,28 +128,29 @@ class AISE(BlackBoxXAIMethod):
             saliency_maps[target] = saliency_map_per_target
         return saliency_maps
 
+    @staticmethod
     def _preset_parameters(
-        self,
         preset: Preset,
         num_iterations_per_kernel: int | None,
         kernel_widths: List[float] | np.ndarray | None,
     ) -> None:
         if preset == Preset.SPEED:
-            self.num_iterations_per_kernel = 25
-            self.kernel_widths = np.linspace(0.1, 0.25, 3)
+            iterations = 25
+            widths = np.linspace(0.1, 0.25, 3)
         elif preset == Preset.BALANCE:
-            self.num_iterations_per_kernel = 50
-            self.kernel_widths = np.linspace(0.1, 0.25, 3)
+            iterations = 50
+            widths = np.linspace(0.1, 0.25, 3)
         elif preset == Preset.QUALITY:
-            self.num_iterations_per_kernel = 85
-            self.kernel_widths = np.linspace(0.075, 0.25, 4)
+            iterations = 85
+            widths = np.linspace(0.075, 0.25, 4)
         else:
             raise ValueError(f"Preset {preset} is not supported.")
 
         if num_iterations_per_kernel is not None:
-            self.num_iterations_per_kernel = num_iterations_per_kernel
+            iterations = num_iterations_per_kernel
         if kernel_widths is not None:
-            self.kernel_widths = kernel_widths
+            widths = kernel_widths
+        return iterations, widths
 
     def _run_synchronous_explanation(self) -> np.ndarray:
         for kernel_width in self.kernel_widths:
