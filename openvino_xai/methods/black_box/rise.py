@@ -14,7 +14,7 @@ from openvino_xai.methods.black_box.base import BlackBoxXAIMethod, Preset
 
 class RISE(BlackBoxXAIMethod):
     """RISE explains classification models in black-box mode using
-    RISE: Randomized Input Sampling for Explanation of Black-box Models
+    'RISE: Randomized Input Sampling for Explanation of Black-box Models' paper
     (https://arxiv.org/abs/1806.07421).
 
     :param model: OpenVINO model.

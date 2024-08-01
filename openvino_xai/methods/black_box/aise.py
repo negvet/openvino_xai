@@ -83,7 +83,7 @@ class AISE(BlackBoxXAIMethod):
         :type data: np.ndarray
         :param target_indices: List of target indices to explain.
         :type target_indices: List[int]
-        :param preset: Speed-Quality preset, defines predefined configurations that manage speed-quality tradeoff.
+        :param preset: Speed-Quality preset, defines predefined configurations that manage the speed-quality tradeoff.
         :type preset: Preset
         :param num_iterations_per_kernel: Number of iterations per kernel, defines compute budget.
         :type num_iterations_per_kernel: int
@@ -146,11 +146,11 @@ class AISE(BlackBoxXAIMethod):
         else:
             raise ValueError(f"Preset {preset} is not supported.")
 
-        if num_iterations_per_kernel is not None:
-            iterations = num_iterations_per_kernel
-        if kernel_widths is not None:
-            widths = kernel_widths
-        return iterations, widths
+        if num_iterations_per_kernel is None:
+            num_iterations_per_kernel = iterations
+        if kernel_widths is None:
+            kernel_widths = widths
+        return num_iterations_per_kernel, kernel_widths
 
     def _run_synchronous_explanation(self) -> np.ndarray:
         for kernel_width in self.kernel_widths:
