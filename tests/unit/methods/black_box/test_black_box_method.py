@@ -136,4 +136,9 @@ class TestRISE(InputSampling):
         toc = time.time()
         time_balance = toc - tic
 
-        assert time_speed < time_balance
+        tic = time.time()
+        self._generate_with_preset(method, Preset.QUALITY)
+        toc = time.time()
+        time_quality = toc - tic
+
+        assert time_speed < time_balance < time_quality
