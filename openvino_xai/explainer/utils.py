@@ -17,7 +17,7 @@ def convert_targets_to_numpy(targets):
     return np.atleast_1d(targets)
 
 
-def get_explain_target_indices(
+def get_target_indices(
     targets: np.ndarray | List[int | str],
     label_names: List[str] | None = None,
 ) -> List[int]:

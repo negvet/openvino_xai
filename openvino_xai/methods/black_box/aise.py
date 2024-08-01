@@ -22,7 +22,7 @@ from openvino_xai.methods.black_box.base import BlackBoxXAIMethod, Preset
 
 class AISE(BlackBoxXAIMethod):
     """AISE explains classification models in black-box mode using
-    AISE: Adaptive Input Sampling for Explanation of Black-box Models.
+    AISE: Adaptive Input Sampling for Explanation of Black-box Models
     (TODO (negvet): add link to the paper.)
 
     :param model: OpenVINO model.
@@ -67,7 +67,7 @@ class AISE(BlackBoxXAIMethod):
     def generate_saliency_map(  # type: ignore
         self,
         data: np.ndarray,
-        explain_target_indices: List[int] | None,
+        target_indices: List[int] | None,
         preset: Preset = Preset.BALANCE,
         num_iterations_per_kernel: int | None = None,
         kernel_widths: List[float] | np.ndarray | None = None,
@@ -81,9 +81,9 @@ class AISE(BlackBoxXAIMethod):
 
         :param data: Input image.
         :type data: np.ndarray
-        :param explain_target_indices: List of target indices to explain.
-        :type explain_target_indices: List[int]
-        :param preset: Speed-Quality preset, defines predefined configurations that manage speed-quality tradeoff.
+        :param target_indices: List of target indices to explain.
+        :type target_indices: List[int]
+        :param preset: Speed-Quality preset, defines predefined configurations that manage the speed-quality tradeoff.
         :type preset: Preset
         :param num_iterations_per_kernel: Number of iterations per kernel, defines compute budget.
         :type num_iterations_per_kernel: int
@@ -98,13 +98,17 @@ class AISE(BlackBoxXAIMethod):
         """
         self.data_preprocessed = self.preprocess_fn(data)
 
-        if explain_target_indices is None:
+        if target_indices is None:
             num_classes = self.get_num_classes(self.data_preprocessed)
             if num_classes > 10:
                 logger.info(f"num_classes = {num_classes}, which might take significant time to process.")
-            explain_target_indices = list(range(num_classes))
+            target_indices = list(range(num_classes))
 
-        self._preset_parameters(preset, num_iterations_per_kernel, kernel_widths)
+        self.num_iterations_per_kernel, self.kernel_widths = self._preset_parameters(
+            preset,
+            num_iterations_per_kernel,
+            kernel_widths,
+        )
 
         self.solver_epsilon = solver_epsilon
         self.locally_biased = locally_biased
@@ -113,7 +117,7 @@ class AISE(BlackBoxXAIMethod):
         self._mask_generator = GaussianPerturbationMask(self.input_size)
 
         saliency_maps = {}
-        for target in explain_target_indices:
+        for target in target_indices:
             self.kernel_params_hist = collections.defaultdict(list)
             self.pred_score_hist = collections.defaultdict(list)
 
@@ -124,28 +128,29 @@ class AISE(BlackBoxXAIMethod):
             saliency_maps[target] = saliency_map_per_target
         return saliency_maps
 
+    @staticmethod
     def _preset_parameters(
-        self,
         preset: Preset,
         num_iterations_per_kernel: int | None,
         kernel_widths: List[float] | np.ndarray | None,
-    ) -> None:
+    ) -> Tuple[int, np.ndarray]:
         if preset == Preset.SPEED:
-            self.num_iterations_per_kernel = 25
-            self.kernel_widths = np.linspace(0.1, 0.25, 3)
+            iterations = 25
+            widths = np.linspace(0.1, 0.25, 3)
         elif preset == Preset.BALANCE:
-            self.num_iterations_per_kernel = 50
-            self.kernel_widths = np.linspace(0.1, 0.25, 3)
+            iterations = 50
+            widths = np.linspace(0.1, 0.25, 3)
         elif preset == Preset.QUALITY:
-            self.num_iterations_per_kernel = 85
-            self.kernel_widths = np.linspace(0.075, 0.25, 4)
+            iterations = 85
+            widths = np.linspace(0.075, 0.25, 4)
         else:
             raise ValueError(f"Preset {preset} is not supported.")
 
-        if num_iterations_per_kernel is not None:
-            self.num_iterations_per_kernel = num_iterations_per_kernel
-        if kernel_widths is not None:
-            self.kernel_widths = kernel_widths
+        if num_iterations_per_kernel is None:
+            num_iterations_per_kernel = iterations
+        if kernel_widths is None:
+            kernel_widths = widths
+        return num_iterations_per_kernel, kernel_widths
 
     def _run_synchronous_explanation(self) -> np.ndarray:
         for kernel_width in self.kernel_widths:

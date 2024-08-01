@@ -12,7 +12,7 @@ import numpy as np
 from openvino_xai.explainer.utils import (
     convert_targets_to_numpy,
     explains_all,
-    get_explain_target_indices,
+    get_target_indices,
 )
 
 
@@ -111,11 +111,11 @@ class Explanation:
         label_names: List[str] | None = None,
     ) -> Dict[int | str, np.ndarray]:
         assert self.layout == Layout.MULTIPLE_MAPS_PER_IMAGE_GRAY
-        explain_target_indices = self._select_target_indices(
+        target_indices = self._select_target_indices(
             targets=targets,
             label_names=label_names,
         )
-        saliency_maps_selected = {i: self._saliency_map[i] for i in explain_target_indices}
+        saliency_maps_selected = {i: self._saliency_map[i] for i in target_indices}
         return saliency_maps_selected
 
     def _select_target_indices(
@@ -123,14 +123,14 @@ class Explanation:
         targets: np.ndarray | List[int | str],
         label_names: List[str] | None = None,
     ) -> List[int] | np.ndarray:
-        explain_target_indices = get_explain_target_indices(targets, label_names)
+        target_indices = get_target_indices(targets, label_names)
         if self.total_num_targets is not None:
-            if not all(0 <= target_index <= (self.total_num_targets - 1) for target_index in explain_target_indices):
+            if not all(0 <= target_index <= (self.total_num_targets - 1) for target_index in target_indices):
                 raise ValueError(f"All targets indices have to be in range 0..{self.total_num_targets - 1}.")
         else:
-            if not all(target_index in self.saliency_map for target_index in explain_target_indices):
+            if not all(target_index in self.saliency_map for target_index in target_indices):
                 raise ValueError("Provided targer index {targer_index} is not available among saliency maps.")
-        return explain_target_indices
+        return target_indices
 
     def save(self, dir_path: Path | str, name: str | None = None) -> None:
         """Dumps saliency map."""
