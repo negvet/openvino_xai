@@ -103,13 +103,24 @@ class TestRISE(InputSampling):
             num_masks=5,
         )
 
-        assert saliency_map.dtype == np.uint8
-        assert saliency_map.shape == (1, 20, 224, 224)
-        assert (saliency_map >= 0).all() and (saliency_map <= 255).all()
+        if target_indices == [0]:
+            assert isinstance(saliency_map, dict)
+            assert saliency_map[0].dtype == np.uint8
+            assert saliency_map[0].shape == (224, 224)
+            assert (saliency_map[0] >= 0).all() and (saliency_map[0] <= 255).all()
 
-        actual_sal_vals = saliency_map[0][0][0, :10].astype(np.int16)
-        ref_sal_vals = np.array([246, 241, 236, 231, 226, 221, 216, 211, 205, 197], dtype=np.uint8)
-        assert np.all(np.abs(actual_sal_vals - ref_sal_vals) <= 1)
+            actual_sal_vals = saliency_map[0][0, :10].astype(np.int16)
+            ref_sal_vals = np.array([246, 241, 236, 231, 226, 221, 216, 211, 205, 197], dtype=np.uint8)
+            assert np.all(np.abs(actual_sal_vals - ref_sal_vals) <= 1)
+        else:
+            isinstance(saliency_map, np.ndarray)
+            assert saliency_map.dtype == np.uint8
+            assert saliency_map.shape == (1, 20, 224, 224)
+            assert (saliency_map >= 0).all() and (saliency_map <= 255).all()
+
+            actual_sal_vals = saliency_map[0][0][0, :10].astype(np.int16)
+            ref_sal_vals = np.array([246, 241, 236, 231, 226, 221, 216, 211, 205, 197], dtype=np.uint8)
+            assert np.all(np.abs(actual_sal_vals - ref_sal_vals) <= 1)
 
     def test_preset(self, fxt_data_root: Path):
         model = self.get_model(fxt_data_root)

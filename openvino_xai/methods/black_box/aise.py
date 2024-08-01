@@ -108,7 +108,7 @@ class AISE(BlackBoxXAIMethod):
             preset,
             num_iterations_per_kernel,
             kernel_widths,
-            )
+        )
 
         self.solver_epsilon = solver_epsilon
         self.locally_biased = locally_biased
@@ -133,7 +133,7 @@ class AISE(BlackBoxXAIMethod):
         preset: Preset,
         num_iterations_per_kernel: int | None,
         kernel_widths: List[float] | np.ndarray | None,
-    ) -> None:
+    ) -> Tuple[int, np.ndarray]:
         if preset == Preset.SPEED:
             iterations = 25
             widths = np.linspace(0.1, 0.25, 3)

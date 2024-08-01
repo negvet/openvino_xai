@@ -1,14 +1,14 @@
 # Copyright (C) 2023-2024 Intel Corporation
 # SPDX-License-Identifier: Apache-2.0
 
-from typing import Callable, List, Mapping, Tuple
+from typing import Callable, Dict, List, Mapping, Tuple
 
 import cv2
 import numpy as np
 import openvino.runtime as ov
 from tqdm import tqdm
 
-from openvino_xai.common.utils import IdentityPreprocessFN, scaling
+from openvino_xai.common.utils import IdentityPreprocessFN, is_bhwc_layout, scaling
 from openvino_xai.methods.black_box.base import BlackBoxXAIMethod, Preset
 
 
@@ -54,7 +54,7 @@ class RISE(BlackBoxXAIMethod):
         prob: float = 0.5,
         seed: int = 0,
         scale_output: bool = True,
-    ) -> np.ndarray:
+    ) -> np.ndarray | Dict[int, np.ndarray]:
         """
         Generates inference result of the RISE algorithm.
 
@@ -90,9 +90,14 @@ class RISE(BlackBoxXAIMethod):
             seed,
         )
 
-        if scale_output:
-            saliency_maps = scaling(saliency_maps)
-        saliency_maps = np.expand_dims(saliency_maps, axis=0)
+        if isinstance(saliency_maps, np.ndarray):
+            if scale_output:
+                saliency_maps = scaling(saliency_maps)
+            saliency_maps = np.expand_dims(saliency_maps, axis=0)
+        elif isinstance(saliency_maps, dict):
+            for target in saliency_maps:
+                if scale_output:
+                    saliency_maps[target] = scaling(saliency_maps[target])
         return saliency_maps
 
     @staticmethod
@@ -121,8 +126,6 @@ class RISE(BlackBoxXAIMethod):
         prob: float,
         seed: int,
     ) -> np.ndarray:
-        from openvino_xai.common.utils import is_bhwc_layout
-
         input_size = data_preprocessed.shape[1:3] if is_bhwc_layout(data_preprocessed) else data_preprocessed.shape[2:4]
 
         num_classes = self.get_num_classes(data_preprocessed)
@@ -134,7 +137,7 @@ class RISE(BlackBoxXAIMethod):
 
         rand_generator = np.random.default_rng(seed=seed)
 
-        sal_maps = np.zeros((num_targets, input_size[0], input_size[1]))
+        saliency_maps = np.zeros((num_targets, input_size[0], input_size[1]))
         for _ in tqdm(range(0, num_masks), desc="Explaining in synchronous mode"):
             mask = self._generate_mask(input_size, num_cells, prob, rand_generator)
             # Add channel dimensions for masks
@@ -147,11 +150,11 @@ class RISE(BlackBoxXAIMethod):
             raw_scores = self.postprocess_fn(forward_output)
 
             sal = self._get_scored_mask(raw_scores, mask, target_classes)
-            sal_maps += sal
+            saliency_maps += sal
 
         if target_classes is not None:
-            sal_maps = self._reconstruct_sparce_saliency_map(sal_maps, num_classes, input_size, target_classes)
-        return sal_maps
+            saliency_maps = self._reformat_as_dict(saliency_maps, target_classes)
+        return saliency_maps
 
     @staticmethod
     def _get_scored_mask(raw_scores: np.ndarray, mask: np.ndarray, target_classes: List[int] | None) -> np.ndarray:
@@ -161,15 +164,11 @@ class RISE(BlackBoxXAIMethod):
             return raw_scores.reshape(-1, 1, 1) * mask
 
     @staticmethod
-    def _reconstruct_sparce_saliency_map(
-        sal_maps: np.ndarray, num_classes: int, input_size, target_classes: List[int] | None
+    def _reformat_as_dict(
+        saliency_maps: np.ndarray,
+        target_classes: List[int] | None,
     ) -> np.ndarray:
-        # TODO: see if np.put() or other alternatives works faster (requires flatten array)
-        sal_maps_tmp = sal_maps
-        sal_maps = np.zeros((num_classes, input_size[0], input_size[1]))
-        for i, sal in enumerate(sal_maps_tmp):
-            sal_maps[target_classes[i]] = sal
-        return sal_maps
+        return {target_class: saliency_map for target_class, saliency_map in zip(target_classes, saliency_maps)}
 
     @staticmethod
     def _generate_mask(input_size: Tuple[int, int], num_cells: int, prob: float, rand_generator) -> np.ndarray:
