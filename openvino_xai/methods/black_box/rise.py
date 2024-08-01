@@ -105,6 +105,7 @@ class RISE(BlackBoxXAIMethod):
         preset: Preset,
         num_masks: int | None = None,
     ) -> int:
+        # TODO (negvet): preset num_cells
         if num_masks is not None:
             return num_masks
 
