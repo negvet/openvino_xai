@@ -5,11 +5,13 @@ from pathlib import Path
 
 import openvino as ov
 import pytest
+from pytest_mock import MockerFixture
 
 from openvino_xai.common.parameters import Method, Task
 from openvino_xai.common.utils import retrieve_otx_model
-from openvino_xai.explainer.utils import get_preprocess_fn
-from openvino_xai.methods.factory import WhiteBoxMethodFactory
+from openvino_xai.explainer.utils import get_postprocess_fn, get_preprocess_fn
+from openvino_xai.methods.black_box.aise import AISE
+from openvino_xai.methods.factory import BlackBoxMethodFactory, WhiteBoxMethodFactory
 from openvino_xai.methods.white_box.activation_map import ActivationMap
 from openvino_xai.methods.white_box.det_class_probability_map import (
     DetClassProbabilityMap,
@@ -73,6 +75,40 @@ def test_create_wb_cls_vit_method(fxt_data_root: Path):
         Task.CLASSIFICATION, model_vit, PREPROCESS_FN, explain_method=Method.VITRECIPROCAM
     )
     assert isinstance(explain_method, ViTReciproCAM)
+
+
+def test_create_wb_cls_guess_method(mocker: MockerFixture):
+    model = mocker.MagicMock()
+    # method=None -> ReciproCAM fail -> ViTReciproCAM
+    recipro_cam = mocker.patch("openvino_xai.methods.factory.ReciproCAM", side_effect=Exception("DUMMY REASON"))
+    vit_recipro_cam = mocker.patch("openvino_xai.methods.factory.ViTReciproCAM")
+    explain_method = WhiteBoxMethodFactory.create_method(
+        task=Task.CLASSIFICATION,
+        model=model,
+        preprocess_fn=PREPROCESS_FN,
+        explain_method=None,
+    )
+    vit_recipro_cam.assert_called()
+    # method=ReciproCAM -> ReciproCAM fail -> Exception
+    recipro_cam = mocker.patch("openvino_xai.methods.factory.ReciproCAM", side_effect=Exception("DUMMY REASON"))
+    vit_recipro_cam = mocker.patch("openvino_xai.methods.factory.ViTReciproCAM")
+    with pytest.raises(Exception) as exc_info:
+        explain_method = WhiteBoxMethodFactory.create_method(
+            task=Task.CLASSIFICATION,
+            model=model,
+            preprocess_fn=PREPROCESS_FN,
+            explain_method=Method.RECIPROCAM,
+        )
+    vit_recipro_cam.assert_not_called()
+    assert str(exc_info.value) == "DUMMY REASON"
+
+
+def test_create_bb_cls_vit_method(fxt_data_root: Path):
+    retrieve_otx_model(fxt_data_root, VIT_MODEL)
+    model_path = fxt_data_root / "otx_models" / (VIT_MODEL + ".xml")
+    model_vit = ov.Core().read_model(model_path)
+    explain_method = BlackBoxMethodFactory.create_method(Task.CLASSIFICATION, model_vit, get_postprocess_fn())
+    assert isinstance(explain_method, AISE)
 
 
 def test_create_wb_det_cnn_method(fxt_data_root: Path):
