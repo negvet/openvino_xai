@@ -5,9 +5,10 @@
 ### Summary
 
 * Support OpenVINO IR (.xml) / ONNX (.onnx) model file for `Explainer` model
-* Enable AISE: Adaptive Input Sampling for Explanation of Black-box Models.
+* Enable AISE: Adaptive Input Sampling for Explanation of Black-box Models
 * Upgrade OpenVINO to 2024.3.0
 * Add saliency map visualization with explanation.plot()
+* Enable flexible naming for saved saliency maps and include confidence scores
 
 ### What's Changed
 
@@ -19,6 +20,7 @@
 * Enable AISE: Adaptive Input Sampling for Explanation of Black-box Models by @negvet in https://github.com/openvinotoolkit/openvino_xai/pull/49
 * Upgrade OpenVINO to 2024.3.0 by @goodsong81 in https://github.com/openvinotoolkit/openvino_xai/pull/52
 * Add saliency map visualization with explanation.plot() by @GalyaZalesskaya in https://github.com/openvinotoolkit/openvino_xai/pull/53
+* Enable flexible naming for saved saliency maps and include confidence scores by @GalyaZalesskaya in https://github.com/openvinotoolkit/openvino_xai/pull/51
 
 ### Known Issues
 

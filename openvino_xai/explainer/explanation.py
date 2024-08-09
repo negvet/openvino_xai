@@ -134,21 +134,58 @@ class Explanation:
                 raise ValueError("Provided targer index {targer_index} is not available among saliency maps.")
         return target_indices
 
-    def save(self, dir_path: Path | str, name: str | None = None) -> None:
-        """Dumps saliency map."""
+    def save(
+        self,
+        dir_path: Path | str,
+        prefix: str = "",
+        postfix: str = "",
+        confidence_scores: Dict[int, float] | None = None,
+    ) -> None:
+        """
+        Dumps saliency map images to the specified directory.
+
+        Allows flexibly name the files with the prefix and postfix.
+        {prefix} + target_id + {postfix}.jpg
+
+        Also allows to add confidence scores to the file names.
+        {prefix} + target_id + {postfix} + confidence.jpg
+
+        save(output_dir) -> aeroplane.jpg
+        save(output_dir, prefix="image_name_target_") -> image_name_target_aeroplane.jpg
+        save(output_dir, postfix="_class_map") -> aeroplane_class_map.jpg
+        save(
+            output_dir, prefix="image_name_", postfix="_conf_", confidence_scores=scores
+        ) -> image_name_aeroplane_conf_0.85.jpg
+
+        Parameters:
+            :param dir_path: The directory path where the saliency maps will be saved.
+            :type dir_path: Path | str
+            :param prefix: Optional prefix for the saliency map names. Default is an empty string.
+            :type prefix: str
+            :param postfix: Optional postfix for the saliency map names. Default is an empty string.
+            :type postfix: str
+            :param confidence_scores: Dict with confidence scores for each class index. Default is None.
+            :type confidence_scores: Dict[int, float] | None
+
+        """
+
         os.makedirs(dir_path, exist_ok=True)
-        save_name = name if name else ""
-        for cls_idx, map_to_save in self._saliency_map.items():
+
+        template = f"{prefix}{{target_name}}{postfix}{{conf_score}}.jpg"
+        for target_idx, map_to_save in self._saliency_map.items():
+            conf_score = ""
             map_to_save = cv2.cvtColor(map_to_save, code=cv2.COLOR_RGB2BGR)
-            if isinstance(cls_idx, str):
-                cv2.imwrite(os.path.join(dir_path, f"{save_name}.jpg"), img=map_to_save)
-                return
+            if isinstance(target_idx, str):
+                target_name = "activation_map"
+            elif self.label_names and isinstance(target_idx, np.int64):
+                target_name = self.label_names[target_idx]
             else:
-                if self.label_names:
-                    target_name = self.label_names[cls_idx]
-                else:
-                    target_name = str(cls_idx)
-            image_name = f"{save_name}_target_{target_name}.jpg" if save_name else f"target_{target_name}.jpg"
+                target_name = str(target_idx)
+
+            if confidence_scores and target_idx in confidence_scores:
+                conf_score = f"{confidence_scores[int(target_idx)]:.2f}"
+
+            image_name = template.format(target_name=target_name, conf_score=conf_score)
             cv2.imwrite(os.path.join(dir_path, image_name), img=map_to_save)
 
     def plot(
