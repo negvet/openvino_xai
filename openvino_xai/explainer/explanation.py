@@ -7,8 +7,10 @@ from pathlib import Path
 from typing import Dict, List
 
 import cv2
+import matplotlib.pyplot as plt
 import numpy as np
 
+from openvino_xai.common.utils import logger
 from openvino_xai.explainer.utils import (
     convert_targets_to_numpy,
     explains_all,
@@ -148,6 +150,94 @@ class Explanation:
                     target_name = str(cls_idx)
             image_name = f"{save_name}_target_{target_name}.jpg" if save_name else f"target_{target_name}.jpg"
             cv2.imwrite(os.path.join(dir_path, image_name), img=map_to_save)
+
+    def plot(
+        self,
+        targets: np.ndarray | List[int | str] | None = None,
+        backend: str = "matplotlib",
+        max_num_plots: int = 24,
+        num_columns: int = 4,
+    ) -> None:
+        """
+        Plots saliency maps using the specified backend.
+
+        This function plots available saliency maps using the specified backend. Targets to plot
+        can be specified by passing a list of target class indices or names. If a provided class is
+        not available among the saliency maps, it is omitted.
+
+        Args:
+            targets (np.ndarray | List[int | str] | None): A list or array of target class indices or names to plot.
+                By default, it's None, and all available saliency maps are plotted.
+            backend (str): The plotting backend to use. Can be either 'matplotlib' (recommended for Jupyter)
+                or 'cv' (recommended for Python scripts). Default is 'matplotlib'.
+            max_num_plots (int): Max number of images to plot. Default is 24 to avoid memory issues.
+            num_columns (int): Number of columns in the saliency maps visualization grid for the matplotlib backend.
+        """
+
+        if targets is None or explains_all(targets):
+            checked_targets = self.targets
+        else:
+            target_indices = get_target_indices(targets, self.label_names)
+            checked_targets = []
+            for target_index in target_indices:
+                if target_index in self.saliency_map:
+                    checked_targets.append(target_index)
+                else:
+                    logger.info(f"Provided class index {target_index} is not available among saliency maps.")
+
+        if len(checked_targets) > max_num_plots:
+            logger.warning(
+                f"Decrease the number of plotted saliency maps from {len(checked_targets)} to {max_num_plots}"
+                " to avoid the memory issue. To avoid this, increase the 'max_num_plots' argument."
+            )
+            checked_targets = checked_targets[:max_num_plots]
+
+        if backend == "matplotlib":
+            self._plot_matplotlib(checked_targets, num_columns)
+        elif backend == "cv":
+            self._plot_cv(checked_targets)
+        else:
+            raise ValueError(f"Unknown backend {backend}. Use 'matplotlib' or 'cv'.")
+
+    def _plot_matplotlib(self, checked_targets: list[int | str], num_cols: int) -> None:
+        """Plots saliency maps using matplotlib."""
+        num_rows = int(np.ceil(len(checked_targets) / num_cols))
+        _, axes = plt.subplots(num_rows, num_cols, figsize=(5 * num_cols, 6 * num_rows))
+        axes = axes.flatten()
+
+        for i, target_index in enumerate(checked_targets):
+            if self.label_names and isinstance(target_index, np.int64):
+                label_name = f"{self.label_names[target_index]} ({target_index})"
+            else:
+                label_name = str(target_index)
+
+            map_to_plot = self.saliency_map[target_index]
+
+            axes[i].imshow(map_to_plot)
+            axes[i].axis("off")  # Hide the axis
+            axes[i].set_title(f"Class {label_name}")
+
+        # Hide remaining axes
+        for ax in axes[len(checked_targets) :]:
+            ax.set_visible(False)
+
+        plt.tight_layout()
+        plt.show()
+
+    def _plot_cv(self, checked_targets: list[int | str]) -> None:
+        """Plots saliency maps using OpenCV."""
+        for target_index in checked_targets:
+            if self.label_names and isinstance(target_index, np.int64):
+                label_name = f"{self.label_names[target_index]} ({target_index})"
+            else:
+                label_name = str(target_index)
+
+            map_to_plot = self.saliency_map[target_index]
+            map_to_plot = cv2.cvtColor(map_to_plot, cv2.COLOR_BGR2RGB)
+
+            cv2.imshow(f"Class {label_name}", map_to_plot)
+            cv2.waitKey(0)
+        cv2.destroyAllWindows()
 
 
 class Layout(Enum):

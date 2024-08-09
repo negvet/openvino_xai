@@ -1,9 +1,11 @@
 # Copyright (C) 2024 Intel Corporation
 # SPDX-License-Identifier: Apache-2.0
 
+import logging
 import os
 
 import numpy as np
+import pytest
 
 from openvino_xai.explainer.explanation import Explanation
 from tests.unit.explanation.test_explanation_utils import VOC_NAMES
@@ -67,3 +69,39 @@ class TestExplanation:
             label_names=label_names,
         )
         return explanation
+
+    def test_plot(self, mocker, caplog):
+        explanation = self._get_explanation()
+
+        # Invalid backend
+        with pytest.raises(ValueError):
+            explanation.plot(backend="invalid")
+
+        # Plot all saliency maps
+        explanation.plot()
+        # Matplotloib backend
+        explanation.plot([0, 2], backend="matplotlib")
+        # Targets as label names
+        explanation.plot(["aeroplane", "bird"], backend="matplotlib")
+        # Plot all saliency maps
+        explanation.plot(-1, backend="matplotlib")
+        # Update the num columns for the matplotlib visualization grid
+        explanation.plot(backend="matplotlib", num_columns=1)
+
+        # Class index that is not in saliency maps will be ommitted with message
+        with caplog.at_level(logging.INFO):
+            explanation.plot([0, 3], backend="matplotlib")
+        assert "Provided class index 3 is not available among saliency maps." in caplog.text
+
+        # Check threshold
+        with caplog.at_level(logging.WARNING):
+            explanation.plot([0, 2], backend="matplotlib", max_num_plots=1)
+
+        # CV backend
+        mocker.patch("cv2.imshow")
+        mocker.patch("cv2.waitKey")
+        explanation.plot([0, 2], backend="cv")
+
+        # Plot activation map
+        explanation = self._get_explanation(saliency_maps=SALIENCY_MAPS_IMAGE, label_names=None)
+        explanation.plot()
