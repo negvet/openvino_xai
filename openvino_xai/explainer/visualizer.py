@@ -6,6 +6,7 @@ from typing import Dict, List, Tuple
 import cv2
 import numpy as np
 
+from openvino_xai.common.parameters import Task
 from openvino_xai.common.utils import format_to_bhwc, infer_size_from_image, scaling
 from openvino_xai.explainer.explanation import (
     COLOR_MAPPED_LAYOUTS,
@@ -66,7 +67,7 @@ def overlay(
 
 class Visualizer:
     """
-    Visualizer implements post-processing for the saliency map in explanation result.
+    Visualizer implements post-processing for the saliency maps in explanation.
     """
 
     def __call__(
@@ -146,6 +147,7 @@ class Visualizer:
             saliency_map_np = self._apply_overlay(
                 explanation, saliency_map_np, original_input_image, output_size, overlay_weight
             )
+            saliency_map_np = self._apply_metadata(explanation.metadata, saliency_map_np)
         else:
             if resize:
                 if original_input_image is None and output_size is None:
@@ -158,6 +160,20 @@ class Visualizer:
 
         # Convert back to dict
         return self._update_explanation_with_processed_sal_map(explanation, saliency_map_np, class_idx_to_return)
+
+    @staticmethod
+    def _apply_metadata(metadata, saliency_map_np):
+        if metadata:
+            if Task.DETECTION in metadata:
+                for i in range(len(saliency_map_np)):
+                    saliency_map = saliency_map_np[i]
+                    box, score, label_index = metadata[Task.DETECTION][i]
+                    x1, y1, x2, y2 = box
+                    cv2.rectangle(saliency_map, (int(x1), int(y1)), (int(x2), int(y2)), color=(255, 0, 0), thickness=2)
+                    box_name = f"{label_index}|{score:.2f}"
+                    org = int(x1), int(y1 - 5)
+                    cv2.putText(saliency_map, box_name, org=org, fontFace=1, fontScale=1, color=(255, 0, 0), thickness=2)
+        return saliency_map_np
 
     @staticmethod
     def _apply_scaling(explanation: Explanation, saliency_map_np: np.ndarray) -> np.ndarray:

@@ -11,7 +11,7 @@ import pytest
 
 from openvino_xai.common.utils import retrieve_otx_model
 from openvino_xai.explainer.utils import get_postprocess_fn, get_preprocess_fn
-from openvino_xai.methods.black_box.aise import AISE
+from openvino_xai.methods.black_box.aise import AISEClassification
 from openvino_xai.methods.black_box.base import Preset
 from openvino_xai.methods.black_box.rise import RISE
 from tests.intg.test_classification import DEFAULT_CLS_MODEL
@@ -44,7 +44,7 @@ class TestAISE(InputSampling):
     def test_run(self, target_indices, fxt_data_root: Path):
         model = self.get_model(fxt_data_root)
 
-        aise_method = AISE(model, self.postprocess_fn, self.preprocess_fn)
+        aise_method = AISEClassification(model, self.postprocess_fn, self.preprocess_fn)
         saliency_map = aise_method.generate_saliency_map(
             data=self.image,
             target_indices=target_indices,
@@ -71,7 +71,7 @@ class TestAISE(InputSampling):
 
     def test_preset(self, fxt_data_root: Path):
         model = self.get_model(fxt_data_root)
-        method = AISE(model, self.postprocess_fn, self.preprocess_fn)
+        method = AISEClassification(model, self.postprocess_fn, self.preprocess_fn)
 
         tic = time.time()
         self._generate_with_preset(method, Preset.SPEED)

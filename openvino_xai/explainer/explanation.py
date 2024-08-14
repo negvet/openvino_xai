@@ -4,7 +4,7 @@
 import os
 from enum import Enum
 from pathlib import Path
-from typing import Dict, List
+from typing import Any, Dict, List
 
 import cv2
 import numpy as np
@@ -34,6 +34,7 @@ class Explanation:
         saliency_map: np.ndarray | Dict[int | str, np.ndarray],
         targets: np.ndarray | List[int | str] | int | str,
         label_names: List[str] | None = None,
+        metadata: Dict[int | str, Any] | None = None,
     ):
         targets = convert_targets_to_numpy(targets)
 
@@ -56,6 +57,7 @@ class Explanation:
             self._saliency_map = self._select_target_saliency_maps(targets, label_names)
 
         self.label_names = label_names
+        self.metadata = metadata
 
     @property
     def saliency_map(self) -> Dict[int | str, np.ndarray]:
