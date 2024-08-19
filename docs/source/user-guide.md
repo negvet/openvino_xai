@@ -13,12 +13,17 @@ Content:
 - [OpenVINO™ Explainable AI Toolkit User Guide](#openvino-explainable-ai-toolkit-user-guide)
   - [OpenVINO XAI Architecture](#openvino-xai-architecture)
   - [`Explainer`: the main interface to XAI algorithms](#explainer-the-main-interface-to-xai-algorithms)
+    - [Create Explainer for OpenVINO Model instance](#create-explainer-for-openvino-model-instance)
+    - [Create Explainer from OpenVINO IR file](#create-explainer-from-openvino-ir-file)
+    - [Create Explainer from ONNX model file](#create-explainer-from-onnx-model-file)
   - [Basic usage: Auto mode](#basic-usage-auto-mode)
     - [Running without `preprocess_fn`](#running-without-preprocess_fn)
     - [Specifying `preprocess_fn`](#specifying-preprocess_fn)
   - [White-Box mode](#white-box-mode)
   - [Black-Box mode](#black-box-mode)
   - [XAI insertion (white-box usage)](#xai-insertion-white-box-usage)
+  - [Plot saliency maps](#plot-saliency-maps)
+  - [Saving saliency maps](#saving-saliency-maps)
   - [Example scripts](#example-scripts)
 
 
@@ -96,13 +101,13 @@ Here's the example how we can avoid passing `preprocess_fn` by preprocessing dat
 ```python
 import cv2
 import numpy as np
+from typing import Mapping
 import openvino.runtime as ov
-from openvino.runtime.utils.data_helpers.wrappers import OVDict
 
 import openvino_xai as xai
 
 
-def postprocess_fn(x: OVDict):
+def postprocess_fn(x: Mapping):
     # Implementing our own post-process function based on the model's implementation
     # Return "logits" model output
     return x["logits"]
@@ -133,7 +138,7 @@ explanation = explainer(
 )
 
 # Save saliency maps
-explanation.save("output_path", "name")
+explanation.save("output_path", "name_")
 ```
 
 ### Specifying `preprocess_fn`
@@ -142,8 +147,8 @@ explanation.save("output_path", "name")
 ```python
 import cv2
 import numpy as np
+from typing import Mapping
 import openvino.runtime as ov
-from openvino.runtime.utils.data_helpers.wrappers import OVDict
 
 import openvino_xai as xai
 
@@ -154,7 +159,7 @@ def preprocess_fn(x: np.ndarray) -> np.ndarray:
     x = np.expand_dims(x, 0)
     return x
 
-def postprocess_fn(x: OVDict):
+def postprocess_fn(x: Mapping):
     # Implementing our own post-process function based on the model's implementation
     # Return "logits" model output
     return x["logits"]
@@ -180,7 +185,7 @@ explanation = explainer(
 )
 
 # Save saliency maps
-explanation.save("output_path", "name")
+explanation.save("output_path", "name_")
 ```
 
 
@@ -238,7 +243,7 @@ explanation = explainer(
 )
 
 # Save saliency maps
-explanation.save("output_path", "name")
+explanation.save("output_path", "name_")
 ```
 
 
@@ -294,7 +299,7 @@ explanation = explainer(
 )
 
 # Save saliency maps
-explanation.save("output_path", "name")
+explanation.save("output_path", "name_")
 
 ```
 
@@ -327,6 +332,158 @@ model_xai = xai.insert_xai(
 # ***** Downstream task: user's code that infers model_xai and picks 'saliency_map' output *****
 ```
 
+## Plot saliency maps
+
+To visualize saliency maps, use the `explanation.plot` function.
+
+The `matplotlib` backend is more convenient for plotting saliency maps in Jupyter notebooks, as it uses the Matplotlib library. By default it generates the grid with 4 images per row (can be agjusted by `num_collumns` parameter).
+
+The `cv` backend is better for visualization in Python scripts, as it opens extra windows to display the generated saliency maps.
+
+```python
+import cv2
+import numpy as np
+import openvino.runtime as ov
+
+import openvino_xai as xai
+from openvino_xai.explainer import ExplainMode
+
+def preprocess_fn(image: np.ndarray) -> np.ndarray:
+    """Preprocess the input image."""
+    resized_image = cv2.resize(src=image, dsize=(224, 224))
+    expanded_image = np.expand_dims(resized_image, 0)
+    return expanded_image
+
+# Create ov.Model
+MODEL_PATH = "path/to/model.xml"
+model = ov.Core().read_model(MODEL_PATH)  # type: ov.Model
+
+# The Explainer object will prepare and load the model once in the beginning
+explainer = xai.Explainer(
+    model,
+    task=xai.Task.CLASSIFICATION,
+    preprocess_fn=preprocess_fn,
+)
+
+voc_labels = [
+    'aeroplane', 'bicycle', 'bird', 'boat', 'bottle', 'bus', 'car', 'cat', 'chair', 'cow', 'diningtable',
+    'dog', 'horse', 'motorbike', 'person', 'pottedplant', 'sheep', 'sofa', 'train', 'tvmonitor'
+]
+
+# Generate and process saliency maps (as many as required, sequentially)
+image = cv2.imread("path/to/image.jpg")
+
+# Run explanation
+explanation = explainer(
+    image,
+    explain_mode=ExplainMode.WHITEBOX,
+    label_names=voc_labels,
+    target_explain_labels=[7, 11],  # ['cat', 'dog'] also possible as target classes to explain
+)
+
+# Use matplotlib (recommended for Jupyter) - default backend
+explanation.plot() # plot all saliency map
+explanation.plot(targets=[7], backend="matplotlib")
+explanation.plot(targets=["cat"], backend="matplotlib")
+# Plots a grid with 5 images per row
+explanation.plot(num_columns=5, backend="matplotlib")
+
+# Use OpenCV (recommended for Python) - will open new windows with saliency maps
+explanation.plot(backend="cv") # plot all saliency map
+explanation.plot(targets=[7], backend="cv")
+explanation.plot(targets=["cat"], backend="cv")
+```
+
+## Saving saliency maps
+
+You can easily save saliency maps with flexible naming options by using a `prefix` and `postfix`. The `prefix` allows saliency maps from the same image to have consistent naming.
+
+The format for naming is:
+
+`{prefix} + target_id + {postfix}.jpg`
+
+Additionally, you can include the confidence score for each class in the saved saliency map's name.
+
+`{prefix} + target_id + {postfix} + confidence.jpg`
+
+```python
+import cv2
+import numpy as np
+import openvino.runtime as ov
+from typing import Mapping
+
+import openvino_xai as xai
+from openvino_xai.explainer import ExplainMode
+
+def preprocess_fn(image: np.ndarray) -> np.ndarray:
+    """Preprocess the input image."""
+    x = cv2.resize(src=image, dsize=(224, 224))
+    x = x.transpose((2, 0, 1))
+    processed_image = np.expand_dims(x, 0)
+    return processed_image
+
+def postprocess_fn(output: Mapping):
+    """Postprocess the model output."""
+    output = softmax(output)
+    return output[0]
+
+def softmax(x: np.ndarray) -> np.ndarray:
+    """Compute softmax values of x."""
+    e_x = np.exp(x - np.max(x))
+    return e_x / e_x.sum()
+
+# Generate and process saliency maps (as many as required, sequentially)
+image = cv2.imread("path/to/image.jpg")
+
+# Create ov.Model
+MODEL_PATH = "path/to/model.xml"
+model = ov.Core().read_model(MODEL_PATH)  # type: ov.Model
+
+# The Explainer object will prepare and load the model once in the beginning
+explainer = xai.Explainer(
+    model,
+    task=xai.Task.CLASSIFICATION,
+    preprocess_fn=preprocess_fn,
+)
+
+voc_labels = [
+    'aeroplane', 'bicycle', 'bird', 'boat', 'bottle', 'bus', 'car', 'cat', 'chair', 'cow', 'diningtable',
+    'dog', 'horse', 'motorbike', 'person', 'pottedplant', 'sheep', 'sofa', 'train', 'tvmonitor'
+]
+
+# Get predicted confidences for the image
+compiled_model = core.compile_model(model=model, device_name="AUTO")
+logits = compiled_model(preprocess_fn(image))[0]
+result_infer = postprocess_fn(logits)
+
+# Generate list of predicted class indices and scores
+result_idxs = np.argwhere(result_infer > 0.4).flatten()
+result_scores = result_infer[result_idxs]
+
+# Generate dict {class_index: confidence} to save saliency maps
+scores_dict = {i: score for i, score in zip(result_idxs, result_scores)}
+
+# Run explanation
+explanation = explainer(
+    image,
+    explain_mode=ExplainMode.WHITEBOX,
+    label_names=voc_labels,
+    target_explain_labels=result_idxs,  # target classes to explain
+)
+
+# Save saliency maps flexibly
+OUTPUT_PATH = "output_path"
+explanation.save(OUTPUT_PATH)  # aeroplane.jpg
+explanation.save(OUTPUT_PATH, "image_name_target_")  # image_name_target_aeroplane.jpg
+explanation.save(OUTPUT_PATH, prefix="image_name_target_")  # image_name_target_aeroplane.jpg
+explanation.save(OUTPUT_PATH, postfix="_class_map")  # aeroplane_class_map.jpg
+explanation.save(OUTPUT_PATH, prefix="image_name_", postfix="_class_map")  # image_name_aeroplane_class_map.jpg
+
+# Save saliency maps with confidence scores
+explanation.save(
+    OUTPUT_PATH, prefix="image_name_", postfix="_conf_", confidence_scores=scores_dict
+)  # image_name_aeroplane_conf_0.85.jpg
+```
 
 ## Example scripts
 

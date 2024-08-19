@@ -20,7 +20,7 @@ class RISE(BlackBoxXAIMethod):
     :param model: OpenVINO model.
     :type model: ov.Model
     :param postprocess_fn: Post-processing function that extract scores from IR model output.
-    :type postprocess_fn: Callable[[OVDict], np.ndarray]
+    :type postprocess_fn: Callable[[Mapping], np.ndarray]
     :param preprocess_fn: Pre-processing function, identity function by default
         (assume input images are already preprocessed by user).
     :type preprocess_fn: Callable[[np.ndarray], np.ndarray]

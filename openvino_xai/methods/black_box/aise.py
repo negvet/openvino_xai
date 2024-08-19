@@ -4,11 +4,11 @@
 import collections
 import math
 from abc import ABC, abstractmethod
-from typing import Callable, Dict, List, Tuple
+from typing import Callable, Dict, List, Mapping, Tuple
+
 
 import numpy as np
 import openvino.runtime as ov
-from openvino.runtime.utils.data_helpers.wrappers import OVDict
 from scipy.optimize import Bounds, direct
 
 from openvino_xai.common.parameters import Task
@@ -31,7 +31,7 @@ class AISEBase(BlackBoxXAIMethod, ABC):
     :param model: OpenVINO model.
     :type model: ov.Model
     :param postprocess_fn: Post-processing function that extract scores from IR model output.
-    :type postprocess_fn: Callable[[OVDict], np.ndarray]
+    :type postprocess_fn: Callable[[Mapping], np.ndarray]
     :param preprocess_fn: Pre-processing function, identity function by default
         (assume input images are already preprocessed by user).
     :type preprocess_fn: Callable[[np.ndarray], np.ndarray]
@@ -44,7 +44,7 @@ class AISEBase(BlackBoxXAIMethod, ABC):
     def __init__(
         self,
         model: ov.Model,
-        postprocess_fn: Callable[[OVDict], np.ndarray],
+        postprocess_fn: Callable[[Mapping], np.ndarray],
         preprocess_fn: Callable[[np.ndarray], np.ndarray] = IdentityPreprocessFN(),
         device_name: str = "CPU",
         prepare_model: bool = True,
