@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: Apache-2.0
 
 from abc import ABC, abstractmethod
+import collections
 from typing import Callable, Dict, Mapping
 
 import numpy as np
@@ -23,6 +24,7 @@ class MethodBase(ABC):
         self._model_compiled = None
         self.preprocess_fn = preprocess_fn
         self._device_name = device_name
+        self.metadata = collections.defaultdict(dict)
 
     @property
     def model_compiled(self) -> ov.ie_api.CompiledModel | None:

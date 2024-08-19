@@ -147,7 +147,7 @@ class Visualizer:
             saliency_map_np = self._apply_overlay(
                 explanation, saliency_map_np, original_input_image, output_size, overlay_weight
             )
-            saliency_map_np = self._apply_metadata(explanation.metadata, saliency_map_np)
+            saliency_map_np = self._apply_metadata(explanation.metadata, saliency_map_np, class_idx_to_return)
         else:
             if resize:
                 if original_input_image is None and output_size is None:
@@ -162,12 +162,12 @@ class Visualizer:
         return self._update_explanation_with_processed_sal_map(explanation, saliency_map_np, class_idx_to_return)
 
     @staticmethod
-    def _apply_metadata(metadata, saliency_map_np):
+    def _apply_metadata(metadata: Dict[Task, Dict[int | str, Tuple]], saliency_map_np: np.ndarray, indices: List[int]):
         if metadata:
             if Task.DETECTION in metadata:
-                for i in range(len(saliency_map_np)):
-                    saliency_map = saliency_map_np[i]
-                    box, score, label_index = metadata[Task.DETECTION][i]
+                for smap_i, target_index in zip(range(len(saliency_map_np)), indices):
+                    saliency_map = saliency_map_np[smap_i]
+                    box, score, label_index = metadata[Task.DETECTION][target_index]
                     x1, y1, x2, y2 = box
                     cv2.rectangle(saliency_map, (int(x1), int(y1)), (int(x2), int(y2)), color=(255, 0, 0), thickness=2)
                     box_name = f"{label_index}|{score:.2f}"

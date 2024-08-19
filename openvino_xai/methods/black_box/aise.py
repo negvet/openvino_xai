@@ -56,7 +56,6 @@ class AISEBase(BlackBoxXAIMethod, ABC):
         self.bounds = None
         self.preservation = True
         self.deletion = True
-        self.metadata = collections.defaultdict(dict)
 
         if prepare_model:
             self.prepare_model()
@@ -122,7 +121,9 @@ class AISEBase(BlackBoxXAIMethod, ABC):
                 kernel_mask = self._mask_generator.generate_kernel_mask(kernel_params)
                 score = self.pred_score_hist[kernel_width][i]
                 kernel_masks_weighted += kernel_mask * score
-            kernel_masks_weighted = kernel_masks_weighted / kernel_masks_weighted.max()
+            kernel_masks_weighted_max = kernel_masks_weighted.max()
+            if kernel_masks_weighted_max > 0:
+                kernel_masks_weighted = kernel_masks_weighted / kernel_masks_weighted_max
             saliency_map_per_kernel[kernel_index] = kernel_masks_weighted
 
         saliency_map = saliency_map_per_kernel.sum(axis=0)
@@ -362,6 +363,7 @@ class AISEDetection(AISEBase):
                 saliency_map_per_target = scaling(saliency_map_per_target)
             saliency_maps[target] = saliency_map_per_target
 
+            # # TODO: remove
             # assert np.all(saliency_map_per_target[200, 100:110] == np.array([132, 133, 134, 136, 137, 138, 139, 140, 141, 142], dtype=np.uint8))
             
             self._update_metadata(boxes, scores, labels, target, original_size)
