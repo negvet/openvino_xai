@@ -28,7 +28,17 @@ class AISEBase(BlackBoxXAIMethod, ABC):
     AISE: Adaptive Input Sampling for Explanation of Black-box Models
     (TODO (negvet): add link to the paper.)
 
-    TBD.
+    :param model: OpenVINO model.
+    :type model: ov.Model
+    :param postprocess_fn: Post-processing function that extract scores from IR model output.
+    :type postprocess_fn: Callable[[OVDict], np.ndarray]
+    :param preprocess_fn: Pre-processing function, identity function by default
+        (assume input images are already preprocessed by user).
+    :type preprocess_fn: Callable[[np.ndarray], np.ndarray]
+    :param device_name: Device type name.
+    :type device_name: str
+    :param prepare_model: Loading (compiling) the model prior to inference.
+    :type prepare_model: bool
     """
 
     def __init__(
@@ -270,6 +280,18 @@ class AISEDetection(AISEBase):
     AISE for detection models.
 
     postprocess_fn expected to return three containers: boxes (format: [x1, y1, x2, y2]), scores, labels. Without batch dim.
+    
+    :param model: OpenVINO model.
+    :type model: ov.Model
+    :param postprocess_fn: Post-processing function that extract scores from IR model output.
+    :type postprocess_fn: Callable[[OVDict], np.ndarray]
+    :param preprocess_fn: Pre-processing function, identity function by default
+        (assume input images are already preprocessed by user).
+    :type preprocess_fn: Callable[[np.ndarray], np.ndarray]
+    :param device_name: Device type name.
+    :type device_name: str
+    :param prepare_model: Loading (compiling) the model prior to inference.
+    :type prepare_model: bool
     """
 
     def __init__(
@@ -312,8 +334,8 @@ class AISEDetection(AISEBase):
         :type preset: Preset
         :param num_iterations_per_kernel: Number of iterations per kernel, defines compute budget.
         :type num_iterations_per_kernel: int
-        :param kernel_widths: Kernel bandwidths.
-        :type kernel_widths: List[float] | np.ndarray
+        :param divisors: List of dividors, used to derive kernel widths in an adaptive manner.
+        :type divisors: List[float] | np.ndarray
         :param solver_epsilon: Solver epsilon of DIRECT optimizer.
         :type solver_epsilon: float
         :param locally_biased: Locally biased flag of DIRECT optimizer.
@@ -361,9 +383,6 @@ class AISEDetection(AISEBase):
             if scale_output:
                 saliency_map_per_target = scaling(saliency_map_per_target)
             saliency_maps[target] = saliency_map_per_target
-
-            # # TODO: remove
-            # assert np.all(saliency_map_per_target[200, 100:110] == np.array([132, 133, 134, 136, 137, 138, 139, 140, 141, 142], dtype=np.uint8))
 
             self._update_metadata(boxes, scores, labels, target, original_size)
         return saliency_maps
