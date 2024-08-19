@@ -58,6 +58,7 @@ class InputSampling:
         # return x["boxes"][:, :4], x["boxes"][:, 4], x["labels"]
         return x["boxes"][0][:, :4], x["boxes"][0][:, 4], x["labels"][0]
 
+
 class TestAISEClassification(InputSampling):
     @pytest.mark.parametrize("target_indices", [[0], [0, 1]])
     def test_run(self, target_indices, fxt_data_root: Path):

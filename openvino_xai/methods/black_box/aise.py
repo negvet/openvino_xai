@@ -6,9 +6,9 @@ import math
 from abc import ABC, abstractmethod
 from typing import Callable, Dict, List, Mapping, Tuple
 
-
 import numpy as np
 import openvino.runtime as ov
+from openvino.runtime.utils.data_helpers.wrappers import OVDict
 from scipy.optimize import Bounds, direct
 
 from openvino_xai.common.parameters import Task
@@ -280,7 +280,7 @@ class AISEDetection(AISEBase):
     AISE for detection models.
 
     postprocess_fn expected to return three containers: boxes (format: [x1, y1, x2, y2]), scores, labels. Without batch dim.
-    
+
     :param model: OpenVINO model.
     :type model: ov.Model
     :param postprocess_fn: Post-processing function that extract scores from IR model output.
