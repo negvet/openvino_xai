@@ -1,9 +1,9 @@
 # Copyright (C) 2024 Intel Corporation
 # SPDX-License-Identifier: Apache-2.0
 
-from abc import ABC, abstractmethod
 import collections
 import math
+from abc import ABC, abstractmethod
 from typing import Callable, Dict, List, Tuple
 
 import numpy as np
@@ -47,7 +47,7 @@ class AISEBase(BlackBoxXAIMethod, ABC):
         self.num_iterations_per_kernel: int | None = None
         self.kernel_widths: List[float] | np.ndarray | None = None
         self._current_kernel_width: float | None = None
-        self.solver_epsilon = None
+        self.solver_epsilon = 0.1
         self.locally_biased = False
         self.kernel_params_hist: Dict = collections.defaultdict(list)
         self.pred_score_hist: Dict = collections.defaultdict(list)
@@ -90,12 +90,12 @@ class AISEBase(BlackBoxXAIMethod, ABC):
         kernel_mask = self._mask_generator.generate_kernel_mask(kernel_params)
         kernel_mask = np.clip(kernel_mask, 0, 1)
 
-        pred_loss_preserve = 0
+        pred_loss_preserve = 0.0
         if self.preservation:
             data_perturbed_preserve = self.data_preprocessed * kernel_mask
             pred_loss_preserve = self._get_loss(data_perturbed_preserve)
 
-        pred_loss_delete = 0
+        pred_loss_delete = 0.0
         if self.deletion:
             data_perturbed_delete = self.data_preprocessed * (1 - kernel_mask)
             pred_loss_delete = self._get_loss(data_perturbed_delete)
@@ -322,7 +322,6 @@ class AISEDetection(AISEBase):
         :type scale_output: bool
         """
         # TODO (negvet): support custom bboxes (not predicted ones)
-        # TODO: check dsize=(992, 736)) using OTX ATSS
 
         self.data_preprocessed = self.preprocess_fn(data)
         forward_output = self.model_forward(self.data_preprocessed, preprocess=False)
@@ -365,7 +364,7 @@ class AISEDetection(AISEBase):
 
             # # TODO: remove
             # assert np.all(saliency_map_per_target[200, 100:110] == np.array([132, 133, 134, 136, 137, 138, 139, 140, 141, 142], dtype=np.uint8))
-            
+
             self._update_metadata(boxes, scores, labels, target, original_size)
         return saliency_maps
 
@@ -433,7 +432,14 @@ class AISEDetection(AISEBase):
         area2 = np.prod(box2[2:] - box2[:2])
         return intersection / (area1 + area2 - intersection)
 
-    def _update_metadata(self, boxes: np.ndarray | List[float], scores: np.ndarray | List[float], labels: np.ndarray | List[int], target: int, original_size: Tuple[int, int]) -> None:
+    def _update_metadata(
+        self,
+        boxes: np.ndarray | List,
+        scores: np.ndarray | List[float],
+        labels: np.ndarray | List[int],
+        target: int,
+        original_size: Tuple[int, int],
+    ) -> None:
         x1, y1, x2, y2 = boxes[target]
         width_scale = original_size[1] / self.input_size[1]
         height_scale = original_size[0] / self.input_size[0]

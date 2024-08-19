@@ -9,6 +9,7 @@ from typing import Any, Dict, List
 import cv2
 import numpy as np
 
+from openvino_xai.common.parameters import Task
 from openvino_xai.explainer.utils import (
     convert_targets_to_numpy,
     explains_all,
@@ -34,7 +35,7 @@ class Explanation:
         saliency_map: np.ndarray | Dict[int | str, np.ndarray],
         targets: np.ndarray | List[int | str] | int | str,
         label_names: List[str] | None = None,
-        metadata: Dict[int | str, Any] | None = None,
+        metadata: Dict[Task, Any] | None = None,
     ):
         targets = convert_targets_to_numpy(targets)
 
