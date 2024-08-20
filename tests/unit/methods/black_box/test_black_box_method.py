@@ -137,11 +137,22 @@ class TestAISEDetection(InputSampling):
         assert saliency_map[ref_target].shape == (416, 416)
         assert (saliency_map[ref_target] >= 0).all() and (saliency_map[ref_target] <= 255).all()
 
-        tmp = saliency_map[0]
-
         actual_sal_vals = saliency_map[0][150, 240:250].astype(np.int16)
         ref_sal_vals = np.array([152, 168, 184, 199, 213, 225, 235, 243, 247, 249], dtype=np.uint8)
         assert np.all(np.abs(actual_sal_vals - ref_sal_vals) <= 1)
+
+    def test_target_none(self, fxt_data_root: Path):
+        model = self.get_det_model(fxt_data_root)
+
+        aise_method = AISEDetection(model, self.postprocess_det_fn, self.preprocess_det_fn)
+        saliency_map = aise_method.generate_saliency_map(
+            data=self.image,
+            target_indices=None,
+            preset=Preset.SPEED,
+            num_iterations_per_kernel=1,
+            divisors=[5],
+        )
+        assert len(saliency_map) == 56
 
     def test_preset(self, fxt_data_root: Path):
         model = self.get_det_model(fxt_data_root)

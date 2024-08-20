@@ -372,11 +372,14 @@ class AISEDetection(AISEBase):
 
         saliency_maps = {}
         for target in target_indices:
-            self.kernel_params_hist = collections.defaultdict(list)
-            self.pred_score_hist = collections.defaultdict(list)
-
             self.target_box = boxes[target]
             self.target_label = labels[target]
+
+            if self.target_box[0] == self.target_box[2] or self.target_box[1] == self.target_box[3]:
+                continue
+
+            self.kernel_params_hist = collections.defaultdict(list)
+            self.pred_score_hist = collections.defaultdict(list)
 
             self._process_box()
             saliency_map_per_target = self._run_synchronous_explanation()
@@ -427,6 +430,10 @@ class AISEDetection(AISEBase):
         x_to = min(target_box_scaled[2] + box_width * padding_coef, 1.0)
         y_from = max(target_box_scaled[1] - box_height * padding_coef, 0.0)
         y_to = min(target_box_scaled[3] + box_height * padding_coef, 1.0)
+
+        if x_from < x_to or y_from < y_to:
+            raise ValueError("Bounding box data is incorrect.")
+
         self.bounds = Bounds([x_from, y_from], [x_to, y_to])
 
     def _get_loss(self, data_perturbed: np.array) -> float:
