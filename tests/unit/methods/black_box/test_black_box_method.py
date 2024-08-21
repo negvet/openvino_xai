@@ -55,7 +55,6 @@ class InputSampling:
     @staticmethod
     def postprocess_det_fn(x) -> np.ndarray:
         """Returns boxes, scores, labels."""
-        # return x["boxes"][:, :4], x["boxes"][:, 4], x["labels"]
         return x["boxes"][0][:, :4], x["boxes"][0][:, 4], x["labels"][0]
 
 

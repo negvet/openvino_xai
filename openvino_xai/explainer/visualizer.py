@@ -171,10 +171,16 @@ class Visualizer:
                     box, score, label_index = metadata[Task.DETECTION][target_index]
                     x1, y1, x2, y2 = box
                     cv2.rectangle(saliency_map, (int(x1), int(y1)), (int(x2), int(y2)), color=(255, 0, 0), thickness=2)
-                    box_name = f"{label_index}|{score:.2f}"
-                    org = int(x1), int(y1 - 5)
+                    box_label = f"{label_index}|{score:.2f}"
+                    box_label_loc = int(x1), int(y1 - 5)
                     cv2.putText(
-                        saliency_map, box_name, org=org, fontFace=1, fontScale=1, color=(255, 0, 0), thickness=2
+                        saliency_map,
+                        box_label,
+                        org=box_label_loc,
+                        fontFace=1,
+                        fontScale=1,
+                        color=(255, 0, 0),
+                        thickness=2,
                     )
         return saliency_map_np
 
@@ -241,14 +247,14 @@ class Visualizer:
     def _update_explanation_with_processed_sal_map(
         explanation: Explanation,
         saliency_map_np: np.ndarray,
-        indices: List,
+        target_indices: List,
     ) -> Explanation:
         dict_sal_map: Dict[int | str, np.ndarray] = {}
         if explanation.layout in ONE_MAP_LAYOUTS:
             dict_sal_map["per_image_map"] = saliency_map_np[0]
             saliency_map_np = dict_sal_map
         elif explanation.layout in MULTIPLE_MAP_LAYOUTS:
-            for index, sal_map in zip(indices, saliency_map_np):
+            for index, sal_map in zip(target_indices, saliency_map_np):
                 dict_sal_map[index] = sal_map
         else:
             raise ValueError

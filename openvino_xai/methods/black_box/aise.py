@@ -4,7 +4,7 @@
 import collections
 import math
 from abc import ABC, abstractmethod
-from typing import Callable, Dict, List, Mapping, Tuple
+from typing import Any, Callable, Dict, List, Mapping, Tuple
 
 import numpy as np
 import openvino.runtime as ov
@@ -371,6 +371,7 @@ class AISEDetection(AISEBase):
         self._mask_generator = GaussianPerturbationMask(self.input_size)
 
         saliency_maps = {}
+        self.metadata: Dict[Task, Any] = collections.defaultdict(dict)
         for target in target_indices:
             self.target_box = boxes[target]
             self.target_label = labels[target]
