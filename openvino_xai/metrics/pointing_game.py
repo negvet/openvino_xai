@@ -1,15 +1,16 @@
 # Copyright (C) 2024 Intel Corporation
 # SPDX-License-Identifier: Apache-2.0
 
-from typing import Dict, List, Tuple
+from typing import Any, Dict, List, Tuple
 
 import numpy as np
 
 from openvino_xai.common.utils import logger
 from openvino_xai.explainer.explanation import Explanation
+from openvino_xai.metrics.base import BaseMetric
 
 
-class PointingGame:
+class PointingGame(BaseMetric):
     """
     Implementation of the Pointing Game by Zhang et al., 2018.
 
@@ -29,18 +30,21 @@ class PointingGame:
     """
 
     @staticmethod
-    def pointing_game(saliency_map: np.ndarray, image_gt_bboxes: List[Tuple[int, int, int, int]]) -> bool:
+    def __call__(saliency_map: np.ndarray, image_gt_bboxes: List[Tuple[int, int, int, int]]) -> Dict[str, float]:
         """
-        Implements the Pointing Game metric using a saliency map and bounding boxes of the same image and class.
-        Returns a boolean indicating if any of the most salient points fall within the ground truth bounding boxes.
+        Calculate the Pointing Game metric for one saliency map for one class.
+
+        This implementation uses a saliency map and bounding boxes of the same image and class.
+        Returns a dictionary with the result of the Pointing Game metric.
+        1.0 if any of the most salient points fall within the ground truth bounding boxes, 0.0 otherwise.
 
         :param saliency_map: A 2D numpy array representing the saliency map for the image.
         :type saliency_map: np.ndarray
         :param image_gt_bboxes: A list of tuples (x, y, w, h) representing the bounding boxes of the ground truth objects.
         :type image_gt_bboxes: List[Tuple[int, int, int, int]]
 
-        :return: True if any of the most salient points fall within any of the ground truth bounding boxes, False otherwise.
-        :rtype: bool
+        :return: A dictionary with the result of the Pointing Game metric.
+        :rtype: Dict[str, float]
         """
         # TODO: Optimize calculation by generating a mask from annotation and finding the intersection
         # Find the most salient points in the saliency map
@@ -51,12 +55,15 @@ class PointingGame:
             for max_point_y, max_point_x in max_indices:
                 # Check if this point is within the ground truth bounding box
                 if x <= max_point_x <= x + w and y <= max_point_y <= y + h:
-                    return True
-        return False
+                    return {"pointing_game": 1.0}
+        return {"pointing_game": 0.0}
 
     def evaluate(
-        self, explanations: List[Explanation], gt_bboxes: List[Dict[str, List[Tuple[int, int, int, int]]]]
-    ) -> float:
+        self,
+        explanations: List[Explanation],
+        gt_bboxes: List[Dict[str, List[Tuple[int, int, int, int]]]],
+        **kwargs: Any,
+    ) -> Dict[str, float]:
         """
         Evaluates the Pointing Game metric over a set of images. Skips saliency maps if the gt bboxes for this class are absent.
 
@@ -65,15 +72,15 @@ class PointingGame:
         :param gt_bboxes: A list of dictionaries {label_name: lists of bounding boxes} for each image.
         :type gt_bboxes: List[Dict[str, List[Tuple[int, int, int, int]]]]
 
-        :return: Pointing game score over a list of images
-        :rtype: float
+        :return: Dict with "Pointing game" as a key and score over a list of images as as a value.
+        :rtype: Dict[str, float]
         """
 
         assert len(explanations) == len(
             gt_bboxes
         ), "Number of explanations and ground truth bounding boxes must match and equal to number of images."
 
-        hits = 0
+        hits = 0.0
         num_sal_maps = 0
         for explanation, image_gt_bboxes in zip(explanations, gt_bboxes):
             label_names = explanation.label_names
@@ -90,7 +97,8 @@ class PointingGame:
                     continue
 
                 class_gt_bboxes = image_gt_bboxes[label_name]
-                hits += self.pointing_game(class_sal_map, class_gt_bboxes)
+                hits += self(class_sal_map, class_gt_bboxes)["pointing_game"]
                 num_sal_maps += 1
 
-        return hits / num_sal_maps if num_sal_maps > 0 else 0.0
+        score = hits / num_sal_maps if num_sal_maps > 0 else 0.0
+        return {"pointing_game": score}

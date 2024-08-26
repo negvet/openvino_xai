@@ -11,7 +11,12 @@ import pytest
 from openvino_xai import Task
 from openvino_xai.common.utils import retrieve_otx_model
 from openvino_xai.explainer.explainer import Explainer, ExplainMode
-from openvino_xai.explainer.utils import get_preprocess_fn
+from openvino_xai.explainer.utils import (
+    ActivationType,
+    get_postprocess_fn,
+    get_preprocess_fn,
+)
+from openvino_xai.metrics.insertion_deletion_auc import InsertionDeletionAUC
 from openvino_xai.metrics.pointing_game import PointingGame
 from tests.unit.explanation.test_explanation_utils import VOC_NAMES
 
@@ -23,7 +28,6 @@ COCO_ANN_PATH = "tests/assets/cheetah_person_coco.json"
 def load_gt_bboxes(json_coco_path: str) -> List[Dict[str, List[Tuple[int, int, int, int]]]]:
     """
     Loads ground truth bounding boxes from a COCO format JSON file.
-
     Returns a list of dictionaries, where each dictionary corresponds to an image.
     The key is the label name and the value is a list of bounding boxes for certain image.
     """
@@ -61,12 +65,16 @@ class TestDummyRegression:
         hwc_to_chw=True,
     )
 
+    postprocess_fn = get_postprocess_fn(activation=ActivationType.SIGMOID)
+
     @pytest.fixture(autouse=True)
     def setup(self, fxt_data_root):
         data_dir = fxt_data_root
         retrieve_otx_model(data_dir, MODEL_NAME)
         model_path = data_dir / "otx_models" / (MODEL_NAME + ".xml")
         model = ov.Core().read_model(model_path)
+        compiled_model = ov.Core().compile_model(model, "CPU")
+        self.auc = InsertionDeletionAUC(compiled_model, self.preprocess_fn, self.postprocess_fn)
 
         self.explainer = Explainer(
             model=model,
@@ -76,28 +84,41 @@ class TestDummyRegression:
         )
 
     def test_explainer_image(self):
-        explanation = self.explainer(
-            self.image,
-            targets=["person"],
-            label_names=VOC_NAMES,
-            colormap=False,
-        )
+        explanation = self.explainer(self.image, targets=["person"], label_names=VOC_NAMES, colormap=False)
         assert len(explanation.saliency_map) == 1
-        score = self.pointing_game.evaluate([explanation], self.gt_bboxes)
-        assert score == 1.0
+        pointing_game_score = self.pointing_game.evaluate([explanation], self.gt_bboxes)["pointing_game"]
+        assert pointing_game_score == 1.0
+
+        explanation = self.explainer(self.image, targets=["person"], label_names=VOC_NAMES, colormap=False)
+        assert len(explanation.saliency_map) == 1
+        auc_score = self.auc.evaluate([explanation], [self.image], steps=10).values()
+        insertion_auc_score, deletion_auc_score, delta_auc_score = auc_score
+        assert insertion_auc_score >= 0.9
+        assert deletion_auc_score >= 0.2
+        assert delta_auc_score >= 0.7
+
+        # Two classes for saliency maps
+        explanation = self.explainer(self.image, targets=["person", "cat"], label_names=VOC_NAMES, colormap=False)
+        assert len(explanation.saliency_map) == 2
+        auc_score = self.auc.evaluate([explanation], [self.image], steps=10).values()
+        insertion_auc_score, deletion_auc_score, delta_auc_score = auc_score
+        assert insertion_auc_score >= 0.5
+        assert deletion_auc_score >= 0.1
+        assert delta_auc_score >= 0.35
 
     def test_explainer_images(self):
         images = [self.image, self.image]
         explanations = []
         for image in images:
-            explanation = self.explainer(
-                image,
-                targets=["person"],
-                label_names=VOC_NAMES,
-                colormap=False,
-            )
+            explanation = self.explainer(image, targets=["person"], label_names=VOC_NAMES, colormap=False)
             explanations.append(explanation)
         dataset_gt_bboxes = self.gt_bboxes * 2
 
-        score = self.pointing_game.evaluate(explanations, dataset_gt_bboxes)
-        assert score == 1.0
+        pointing_game_score = self.pointing_game.evaluate(explanations, dataset_gt_bboxes)["pointing_game"]
+        assert pointing_game_score == 1.0
+
+        auc_score = self.auc.evaluate(explanations, images, steps=10).values()
+        insertion_auc_score, deletion_auc_score, delta_auc_score = auc_score
+        assert insertion_auc_score >= 0.9
+        assert deletion_auc_score >= 0.2
+        assert delta_auc_score >= 0.7

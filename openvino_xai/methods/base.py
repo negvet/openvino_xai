@@ -5,7 +5,7 @@ from abc import ABC, abstractmethod
 from typing import Callable, Dict, Mapping
 
 import numpy as np
-import openvino.runtime as ov
+import openvino as ov
 
 from openvino_xai.common.utils import IdentityPreprocessFN
 
@@ -25,7 +25,7 @@ class MethodBase(ABC):
         self._device_name = device_name
 
     @property
-    def model_compiled(self) -> ov.ie_api.CompiledModel | None:
+    def model_compiled(self) -> ov.CompiledModel | None:
         return self._model_compiled
 
     @abstractmethod
