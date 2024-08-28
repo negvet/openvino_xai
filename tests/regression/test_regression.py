@@ -16,8 +16,7 @@ from openvino_xai.explainer.utils import (
     get_postprocess_fn,
     get_preprocess_fn,
 )
-from openvino_xai.metrics.insertion_deletion_auc import InsertionDeletionAUC
-from openvino_xai.metrics.pointing_game import PointingGame
+from openvino_xai.metrics import ADCC, InsertionDeletionAUC, PointingGame
 from tests.unit.explanation.test_explanation_utils import VOC_NAMES
 
 MODEL_NAME = "mlc_mobilenetv3_large_voc"
@@ -57,7 +56,6 @@ def load_gt_bboxes(json_coco_path: str) -> List[Dict[str, List[Tuple[int, int, i
 class TestDummyRegression:
     image = cv2.imread(IMAGE_PATH)
     gt_bboxes = load_gt_bboxes(COCO_ANN_PATH)
-    pointing_game = PointingGame()
 
     preprocess_fn = get_preprocess_fn(
         change_channel_order=True,
@@ -73,8 +71,6 @@ class TestDummyRegression:
         retrieve_otx_model(data_dir, MODEL_NAME)
         model_path = data_dir / "otx_models" / (MODEL_NAME + ".xml")
         model = ov.Core().read_model(model_path)
-        compiled_model = ov.Core().compile_model(model, "CPU")
-        self.auc = InsertionDeletionAUC(compiled_model, self.preprocess_fn, self.postprocess_fn)
 
         self.explainer = Explainer(
             model=model,
@@ -83,28 +79,41 @@ class TestDummyRegression:
             explain_mode=ExplainMode.WHITEBOX,
         )
 
+        self.pointing_game = PointingGame()
+        self.auc = InsertionDeletionAUC(model, self.preprocess_fn, self.postprocess_fn)
+        self.adcc = ADCC(model, self.preprocess_fn, self.postprocess_fn, self.explainer)
+
     def test_explainer_image(self):
         explanation = self.explainer(self.image, targets=["person"], label_names=VOC_NAMES, colormap=False)
         assert len(explanation.saliency_map) == 1
+
         pointing_game_score = self.pointing_game.evaluate([explanation], self.gt_bboxes)["pointing_game"]
         assert pointing_game_score == 1.0
 
-        explanation = self.explainer(self.image, targets=["person"], label_names=VOC_NAMES, colormap=False)
-        assert len(explanation.saliency_map) == 1
         auc_score = self.auc.evaluate([explanation], [self.image], steps=10).values()
         insertion_auc_score, deletion_auc_score, delta_auc_score = auc_score
         assert insertion_auc_score >= 0.9
         assert deletion_auc_score >= 0.2
         assert delta_auc_score >= 0.7
 
-        # Two classes for saliency maps
+        adcc_score = self.adcc.evaluate([explanation], [self.image])["adcc"]
+        assert adcc_score > 0.9
+
+    def test_explainer_image_2_classes(self):
         explanation = self.explainer(self.image, targets=["person", "cat"], label_names=VOC_NAMES, colormap=False)
         assert len(explanation.saliency_map) == 2
+
+        pointing_game_score = self.pointing_game.evaluate([explanation], self.gt_bboxes)["pointing_game"]
+        assert pointing_game_score == 1.0
+
         auc_score = self.auc.evaluate([explanation], [self.image], steps=10).values()
         insertion_auc_score, deletion_auc_score, delta_auc_score = auc_score
         assert insertion_auc_score >= 0.5
         assert deletion_auc_score >= 0.1
         assert delta_auc_score >= 0.35
+
+        adcc_score = self.adcc.evaluate([explanation], [self.image])["adcc"]
+        assert adcc_score > 0.5
 
     def test_explainer_images(self):
         images = [self.image, self.image]
@@ -122,3 +131,6 @@ class TestDummyRegression:
         assert insertion_auc_score >= 0.9
         assert deletion_auc_score >= 0.2
         assert delta_auc_score >= 0.7
+
+        adcc_score = self.adcc.evaluate(explanations, images)["adcc"]
+        assert adcc_score > 0.9
