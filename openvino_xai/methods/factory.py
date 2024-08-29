@@ -10,7 +10,8 @@ import openvino.runtime as ov
 from openvino_xai.common.parameters import Method, Task
 from openvino_xai.common.utils import IdentityPreprocessFN, logger
 from openvino_xai.methods.base import MethodBase
-from openvino_xai.methods.black_box.aise import AISEClassification, AISEDetection
+from openvino_xai.methods.black_box.aise.classification import AISEClassification
+from openvino_xai.methods.black_box.aise.detection import AISEDetection
 from openvino_xai.methods.black_box.base import BlackBoxXAIMethod
 from openvino_xai.methods.black_box.rise import RISE
 from openvino_xai.methods.white_box.activation_map import ActivationMap
