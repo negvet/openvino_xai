@@ -6,7 +6,7 @@ from abc import ABC, abstractmethod
 from typing import Any, Callable, Dict, Mapping
 
 import numpy as np
-import openvino.runtime as ov
+import openvino as ov
 
 from openvino_xai.common.parameters import Task
 from openvino_xai.common.utils import IdentityPreprocessFN
@@ -28,7 +28,7 @@ class MethodBase(ABC):
         self.metadata: Dict[Task, Any] = collections.defaultdict(dict)
 
     @property
-    def model_compiled(self) -> ov.ie_api.CompiledModel | None:
+    def model_compiled(self) -> ov.CompiledModel | None:
         return self._model_compiled
 
     @abstractmethod
