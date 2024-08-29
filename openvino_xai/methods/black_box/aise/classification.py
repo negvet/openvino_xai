@@ -1,20 +1,23 @@
 # Copyright (C) 2024 Intel Corporation
 # SPDX-License-Identifier: Apache-2.0
 
-from openvino_xai.common.utils import IdentityPreprocessFN, infer_size_from_image, logger, scaling, sigmoid
-from openvino_xai.methods.black_box.aise.base import GaussianPerturbationMask
-from openvino_xai.methods.black_box.aise.base import AISEBase
-from openvino_xai.methods.black_box.base import Preset
-
+import collections
+from typing import Callable, Dict, List, Tuple
 
 import numpy as np
 import openvino.runtime as ov
 from openvino.runtime.utils.data_helpers.wrappers import OVDict
 from scipy.optimize import Bounds
 
-
-import collections
-from typing import Callable, Dict, List, Tuple
+from openvino_xai.common.utils import (
+    IdentityPreprocessFN,
+    infer_size_from_image,
+    logger,
+    scaling,
+    sigmoid,
+)
+from openvino_xai.methods.black_box.aise.base import AISEBase, GaussianPerturbationMask
+from openvino_xai.methods.black_box.base import Preset
 
 
 class AISEClassification(AISEBase):

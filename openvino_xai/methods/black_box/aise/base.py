@@ -1,19 +1,17 @@
 # Copyright (C) 2024 Intel Corporation
 # SPDX-License-Identifier: Apache-2.0
 
+import collections
 import math
-from openvino_xai.common.utils import IdentityPreprocessFN
-from openvino_xai.methods.black_box.base import BlackBoxXAIMethod
-
+from abc import ABC, abstractmethod
+from typing import Callable, Dict, List, Mapping, Tuple
 
 import numpy as np
 import openvino.runtime as ov
 from scipy.optimize import direct
 
-
-import collections
-from abc import ABC, abstractmethod
-from typing import Callable, Dict, List, Mapping, Tuple
+from openvino_xai.common.utils import IdentityPreprocessFN
+from openvino_xai.methods.black_box.base import BlackBoxXAIMethod
 
 
 class AISEBase(BlackBoxXAIMethod, ABC):
