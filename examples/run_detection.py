@@ -34,12 +34,13 @@ def preprocess_fn(x: np.ndarray) -> np.ndarray:
 
 def postprocess_fn(x) -> np.ndarray:
     """Returns boxes, scores, labels."""
-    return x["boxes"][0][:, :4], x["boxes"][0][:, 4], x["labels"][0]
+    return x["boxes"][:, :, :4], x["boxes"][:, :, 4], x["labels"]
 
 
 def explain_white_box(args):
     """
     White-box scenario.
+    Per-class saliency map generation for single-stage detection models (using DetClassProbabilityMap).
     Insertion of the XAI branch into the model, thus model has additional 'saliency_map' output.
     """
 
@@ -95,6 +96,7 @@ def explain_white_box(args):
 def explain_black_box(args):
     """
     Black-box scenario.
+    Per-box saliency map generation for all detection models (using AISEDetection).
     """
 
     # Create ov.Model

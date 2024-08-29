@@ -18,13 +18,14 @@ from openvino_xai.common.utils import (
 )
 from openvino_xai.methods.black_box.aise.base import AISEBase, GaussianPerturbationMask
 from openvino_xai.methods.black_box.base import Preset
+from openvino_xai.methods.black_box.utils import check_detection_output
 
 
 class AISEDetection(AISEBase):
     """
     AISE for detection models.
 
-    postprocess_fn expected to return three containers: boxes (format: [x1, y1, x2, y2]), scores, labels. Without batch dim.
+    postprocess_fn expected to return three containers: boxes (format: [x1, y1, x2, y2]), scores, labels. With batch dimention equals to one.
 
     :param model: OpenVINO model.
     :type model: ov.Model
@@ -93,8 +94,11 @@ class AISEDetection(AISEBase):
         self.data_preprocessed = self.preprocess_fn(data)
         forward_output = self.model_forward(self.data_preprocessed, preprocess=False)
 
-        # postprocess_fn expected to return three containers: boxes (x1, y1, x2, y2), scores, labels, without batch dim.
-        boxes, scores, labels = self.postprocess_fn(forward_output)
+        # postprocess_fn expected to return three containers: boxes (x1, y1, x2, y2), scores, labels.
+        output = self.postprocess_fn(forward_output)
+        check_detection_output(output)
+        boxes, scores, labels = output
+        boxes, scores, labels = boxes[0], scores[0], labels[0]
 
         if target_indices is None:
             num_boxes = len(boxes)
@@ -181,12 +185,13 @@ class AISEDetection(AISEBase):
     def _get_loss(self, data_perturbed: np.array) -> float:
         """Get loss for perturbed input."""
         forward_output = self.model_forward(data_perturbed, preprocess=False)
-        boxes, pred_scores, labels = self.postprocess_fn(forward_output)
+        boxes, scores, labels = self.postprocess_fn(forward_output)
+        boxes, scores, labels = boxes[0], scores[0], labels[0]
 
         loss = 0
-        for box, pred_score, label in zip(boxes, pred_scores, labels):
+        for box, score, label in zip(boxes, scores, labels):
             if label == self.target_label:
-                loss = max(loss, self._iou(self.target_box, box) * pred_score)
+                loss = max(loss, self._iou(self.target_box, box) * score)
         return loss
 
     @staticmethod
