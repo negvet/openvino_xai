@@ -1,12 +1,14 @@
 # Copyright (C) 2024 Intel Corporation
 # SPDX-License-Identifier: Apache-2.0
 
+import collections
 from abc import ABC, abstractmethod
-from typing import Callable, Dict, Mapping
+from typing import Any, Callable, Dict, Mapping
 
 import numpy as np
 import openvino as ov
 
+from openvino_xai.common.parameters import Task
 from openvino_xai.common.utils import IdentityPreprocessFN
 
 
@@ -23,6 +25,7 @@ class MethodBase(ABC):
         self._model_compiled = None
         self.preprocess_fn = preprocess_fn
         self._device_name = device_name
+        self.metadata: Dict[Task, Any] = collections.defaultdict(dict)
 
     @property
     def model_compiled(self) -> ov.CompiledModel | None:
