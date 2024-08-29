@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: Apache-2.0
 
 from typing import Tuple
+
 import numpy as np
 
 
@@ -16,7 +17,9 @@ def check_classification_output(x: np.ndarray) -> None:
 def check_detection_output(x: Tuple[np.ndarray, np.ndarray, np.ndarray]) -> None:
     """Checks output of the postprocess function provided by the user (for detection task)."""
     if len(x) != 3:
-        raise RuntimeError("Postprocess function should return three containers: boxes (format: [x1, y1, x2, y2]), scores, labels.")
+        raise RuntimeError(
+            "Postprocess function should return three containers: boxes (format: [x1, y1, x2, y2]), scores, labels."
+        )
 
     for item in x:
         if not isinstance(item, np.ndarray):
