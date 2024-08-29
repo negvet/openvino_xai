@@ -11,7 +11,8 @@ import pytest
 
 from openvino_xai.common.utils import retrieve_otx_model
 from openvino_xai.explainer.utils import get_postprocess_fn, get_preprocess_fn
-from openvino_xai.methods.black_box.aise import AISEClassification, AISEDetection
+from openvino_xai.methods.black_box.aise.classification import AISEClassification
+from openvino_xai.methods.black_box.aise.detection import AISEDetection
 from openvino_xai.methods.black_box.base import Preset
 from openvino_xai.methods.black_box.rise import RISE
 from tests.intg.test_classification import DEFAULT_CLS_MODEL

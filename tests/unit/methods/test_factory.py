@@ -10,7 +10,7 @@ from pytest_mock import MockerFixture
 from openvino_xai.common.parameters import Method, Task
 from openvino_xai.common.utils import retrieve_otx_model
 from openvino_xai.explainer.utils import get_postprocess_fn, get_preprocess_fn
-from openvino_xai.methods.black_box.aise import AISEClassification
+from openvino_xai.methods.black_box.aise.classification import AISEClassification
 from openvino_xai.methods.factory import BlackBoxMethodFactory, WhiteBoxMethodFactory
 from openvino_xai.methods.white_box.activation_map import ActivationMap
 from openvino_xai.methods.white_box.det_class_probability_map import (

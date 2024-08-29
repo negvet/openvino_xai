@@ -14,7 +14,7 @@ from openvino_xai.common.parameters import Method, Task
 from openvino_xai.common.utils import retrieve_otx_model
 from openvino_xai.explainer.explainer import Explainer, ExplainMode
 from openvino_xai.explainer.utils import get_preprocess_fn
-from openvino_xai.methods.black_box.aise import AISEDetection
+from openvino_xai.methods.black_box.aise.detection import AISEDetection
 from openvino_xai.methods.factory import BlackBoxMethodFactory, WhiteBoxMethodFactory
 from openvino_xai.methods.white_box.det_class_probability_map import (
     DetClassProbabilityMap,
