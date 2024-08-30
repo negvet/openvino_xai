@@ -18,13 +18,14 @@ from openvino_xai.common.utils import (
 )
 from openvino_xai.methods.black_box.aise.base import AISEBase, GaussianPerturbationMask
 from openvino_xai.methods.black_box.base import Preset
+from openvino_xai.methods.black_box.utils import check_classification_output
 
 
 class AISEClassification(AISEBase):
     """
     AISE for classification models.
 
-    postprocess_fn expected to return one container with scores. Without batch dim.
+    postprocess_fn expected to return one container with scores. With batch dimention equals to one.
 
     :param model: OpenVINO model.
     :type model: ov.Model
@@ -144,11 +145,12 @@ class AISEClassification(AISEBase):
             kernel_widths = widths
         return num_iterations_per_kernel, kernel_widths
 
-    def _get_loss(self, data_perturbed: np.array) -> float:
+    def _get_loss(self, data_perturbed: np.ndarray) -> float:
         """Get loss for perturbed input."""
         x = self.model_forward(data_perturbed, preprocess=False)
         x = self.postprocess_fn(x)
+        check_classification_output(x)
+
         if np.max(x) > 1 or np.min(x) < 0:
             x = sigmoid(x)
-        pred_scores = x.squeeze()  # type: ignore
-        return pred_scores[self.target]
+        return x[0][self.target]

@@ -15,6 +15,10 @@ from openvino_xai.methods.black_box.aise.classification import AISEClassificatio
 from openvino_xai.methods.black_box.aise.detection import AISEDetection
 from openvino_xai.methods.black_box.base import Preset
 from openvino_xai.methods.black_box.rise import RISE
+from openvino_xai.methods.black_box.utils import (
+    check_classification_output,
+    check_detection_output,
+)
 from tests.intg.test_classification import DEFAULT_CLS_MODEL
 from tests.intg.test_detection import DEFAULT_DET_MODEL
 
@@ -56,7 +60,7 @@ class InputSampling:
     @staticmethod
     def postprocess_det_fn(x) -> np.ndarray:
         """Returns boxes, scores, labels."""
-        return x["boxes"][0][:, :4], x["boxes"][0][:, 4], x["labels"][0]
+        return x["boxes"][:, :, :4], x["boxes"][:, :, 4], x["labels"]
 
 
 class TestAISEClassification(InputSampling):
@@ -227,3 +231,55 @@ class TestRISE(InputSampling):
         time_quality = toc - tic
 
         assert time_speed < time_balance < time_quality
+
+
+def test_check_classification_output():
+    with pytest.raises(Exception) as exc_info:
+        x = 1
+        check_classification_output(x)
+    assert str(exc_info.value) == "Postprocess function should return numpy array."
+
+    with pytest.raises(Exception) as exc_info:
+        x = np.zeros((2, 2, 2))
+        check_classification_output(x)
+    assert str(exc_info.value) == "Postprocess function should return two dimentional numpy array with batch size of 1."
+
+
+def test_check_detection_output():
+    with pytest.raises(Exception) as exc_info:
+        x = 1
+        check_detection_output(x)
+    assert str(exc_info.value) == "Postprocess function should return sized object."
+
+    with pytest.raises(Exception) as exc_info:
+        x = 1, 2
+        check_detection_output(x)
+    assert (
+        str(exc_info.value)
+        == "Postprocess function should return three containers: boxes (format: [x1, y1, x2, y2]), scores, labels."
+    )
+
+    with pytest.raises(Exception) as exc_info:
+        x = np.array([1]), np.array([1]), 1
+        check_detection_output(x)
+    assert str(exc_info.value) == "Postprocess function should return numpy arrays."
+
+    with pytest.raises(Exception) as exc_info:
+        x = np.ones((1, 2)), np.ones((1, 2)), np.ones((2, 2))
+        check_detection_output(x)
+    assert str(exc_info.value) == "Postprocess function should return numpy arrays with batch size of 1."
+
+    with pytest.raises(Exception) as exc_info:
+        x = np.ones((1, 2)), np.ones((1)), np.ones((1, 2, 3))
+        check_detection_output(x)
+    assert str(exc_info.value) == "Boxes should be three-dimentional [Batch, NumBoxes, BoxCoords]."
+
+    with pytest.raises(Exception) as exc_info:
+        x = np.ones((1, 2, 4)), np.ones((1)), np.ones((1, 2, 3))
+        check_detection_output(x)
+    assert str(exc_info.value) == "Scores should be two-dimentional [Batch, Scores]."
+
+    with pytest.raises(Exception) as exc_info:
+        x = np.ones((1, 2, 4)), np.ones((1, 2)), np.ones((1, 2, 3))
+        check_detection_output(x)
+    assert str(exc_info.value) == "Labels should be two-dimentional  [Batch, Labels]."
