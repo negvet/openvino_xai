@@ -1,6 +1,3 @@
-import json
-from typing import Callable, List, Mapping
-
 import cv2
 import numpy as np
 import openvino as ov
@@ -14,13 +11,8 @@ from openvino_xai.explainer.utils import (
     ActivationType,
     get_postprocess_fn,
     get_preprocess_fn,
-    sigmoid,
 )
-from openvino_xai.methods.black_box.base import Preset
 from openvino_xai.metrics.adcc import ADCC
-from openvino_xai.metrics.insertion_deletion_auc import InsertionDeletionAUC
-from openvino_xai.metrics.pointing_game import PointingGame
-from tests.unit.explanation.test_explanation_utils import VOC_NAMES
 
 MODEL_NAME = "mlc_mobilenetv3_large_voc"
 
@@ -56,20 +48,28 @@ class TestADCC:
         input_image = np.random.randint(0, 256, (224, 224, 3), dtype=np.uint8)
         saliency_map = np.random.rand(224, 224)
 
-        complexity_score = self.adcc.complexity(saliency_map)
-        assert complexity_score >= 0.2
-
         model_output = self.adcc.model_predict(input_image)
         class_idx = np.argmax(model_output)
 
-        average_drop_score = self.adcc.average_drop(saliency_map, class_idx, input_image, model_output)
+        score = self.adcc(saliency_map, class_idx, input_image)
+        complexity_score = score["complexity"]
+        average_drop_score = score["average_drop"]
+        coherency_score = score["coherency"]
+        adcc_score = score["adcc"]
+        assert complexity_score >= 0.2
         assert average_drop_score >= 0.2
-
-        coherency_score = self.adcc.coherency(saliency_map, class_idx, input_image)
         assert coherency_score >= 0.2
-
-        adcc_score = self.adcc(saliency_map, class_idx, input_image)["adcc"]
         assert adcc_score >= 0.4
+
+        # Explainer(...embed_scaling=True)
+        saliency_map = np.random.randint(0, 256, (224, 224))
+        adcc_score = self.adcc(saliency_map, class_idx, input_image)["adcc"]
+        assert 0 <= adcc_score <= 1
+
+        # Explainer(...embed_scaling=False)
+        saliency_map = np.random.uniform(-1, 1, (224, 224))
+        adcc_score = self.adcc(saliency_map, class_idx, input_image)["adcc"]
+        assert 0 <= adcc_score <= 1
 
     def test_evaluate(self):
         input_images = [np.random.rand(224, 224, 3) for _ in range(5)]

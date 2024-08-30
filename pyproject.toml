@@ -49,6 +49,7 @@ val = [
   "pandas",
   "py-cpuinfo",
   "openpyxl",
+  "torchvision",
 ]
 doc = [
   "furo",

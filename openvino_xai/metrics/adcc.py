@@ -1,9 +1,10 @@
 from typing import Any, Dict, List
 
 import numpy as np
-from scipy import stats as STS
+from scipy.stats import pearsonr
 
 from openvino_xai import Task
+from openvino_xai.common.utils import scaling
 from openvino_xai.explainer.explainer import Explainer, ExplainMode
 from openvino_xai.explainer.explanation import Explanation
 from openvino_xai.metrics.base import BaseMetric
@@ -60,10 +61,9 @@ class ADCC(BaseMetric):
         saliency_map_mapped_image = self.explainer(masked_image, targets=[class_idx], colormap=False, scaling=False)
         saliency_map_mapped_image = saliency_map_mapped_image.saliency_map[class_idx]
 
-        A, B = saliency_map, saliency_map_mapped_image
+        A, B = saliency_map.flatten(), saliency_map_mapped_image.flatten()
         # Pearson correlation coefficient
-        Asq, Bsq = A.flatten(), B.flatten()
-        y, _ = STS.pearsonr(Asq, Bsq)
+        y, _ = pearsonr(A, B)
         y = (y + 1) / 2
 
         return y
@@ -94,9 +94,9 @@ class ADCC(BaseMetric):
         :return: A dictionary containing the ADCC, coherency, complexity, and average drop metrics.
         :rtype: Dict[str, float]
         """
+        # Scale the saliency map to [0, 1] range.
         if not (0 <= np.min(saliency_map) and np.max(saliency_map) <= 1):
-            # Scale saliency map to [0, 1]
-            saliency_map = saliency_map / 255
+            saliency_map = scaling(saliency_map, cast_to_uint8=False, max_value=1)
 
         model_output = self.model_predict(input_image)
 
@@ -120,13 +120,20 @@ class ADCC(BaseMetric):
         :type input_images: List[np.ndarray]
 
         Returns:
-        :return: A dictionary containing the average ADCC score.
+        :return: A dictionary containing the average ADCC, coherency, complexity, and average drop metrics.
         :rtype: Dict[str, float]
         """
         results = []
         for input_image, explanation in zip(input_images, explanations):
             for class_idx, saliency_map in explanation.saliency_map.items():
                 metric_dict = self(saliency_map, int(class_idx), input_image)
-                results.append(metric_dict["adcc"])
-        adcc = np.mean(np.array(results), axis=0)
-        return {"adcc": adcc}
+                results.append(
+                    [
+                        metric_dict["adcc"],
+                        metric_dict["coherency"],
+                        metric_dict["complexity"],
+                        metric_dict["average_drop"],
+                    ]
+                )
+        adcc, coherency, complexity, average_drop = np.mean(np.array(results), axis=0)
+        return {"adcc": adcc, "coherency": coherency, "complexity": complexity, "average_drop": average_drop}
