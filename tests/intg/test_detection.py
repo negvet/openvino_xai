@@ -335,7 +335,7 @@ class TestDetBB:
     @staticmethod
     def postprocess_fn(x) -> np.ndarray:
         """Returns boxes, scores, labels."""
-        return x["boxes"][0][:, :4], x["boxes"][0][:, 4], x["labels"][0]
+        return x["boxes"][:, :, :4], x["boxes"][:, :, 4], x["labels"]
 
 
 class TestExample:
