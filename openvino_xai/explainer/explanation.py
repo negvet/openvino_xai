@@ -17,6 +17,7 @@ from openvino_xai.explainer.utils import (
     explains_all,
     get_target_indices,
 )
+from openvino_xai.methods.base import Prediction
 
 
 class Explanation:
@@ -36,8 +37,9 @@ class Explanation:
         self,
         saliency_map: np.ndarray | Dict[int | str, np.ndarray],
         targets: np.ndarray | List[int | str] | int | str,
+        task: Task,
         label_names: List[str] | None = None,
-        metadata: Dict[Task, Any] | None = None,
+        predictions: Dict[Task, Prediction] | None = None,
     ):
         targets = convert_targets_to_numpy(targets)
 
@@ -57,10 +59,14 @@ class Explanation:
             self.layout = Layout.MULTIPLE_MAPS_PER_IMAGE_GRAY
 
         if not explains_all(targets) and not self.layout == Layout.ONE_MAP_PER_IMAGE_GRAY:
-            self._saliency_map = self._select_target_saliency_maps(targets, label_names)
+            if task == Task.DETECTION:
+                self._saliency_map = self._select_target_saliency_maps(targets, None)
+            else:
+                self._saliency_map = self._select_target_saliency_maps(targets, label_names)
 
+        self.task = task
         self.label_names = label_names
-        self.metadata = metadata
+        self.predictions = predictions
 
     @property
     def saliency_map(self) -> Dict[int | str, np.ndarray]:

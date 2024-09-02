@@ -3,6 +3,7 @@
 
 from enum import Enum
 
+import numpy as np
 import openvino.runtime as ov
 
 from openvino_xai.methods.base import MethodBase
@@ -18,12 +19,12 @@ class BlackBoxXAIMethod(MethodBase):
             self.load_model()
         return self._model
 
-    def get_num_classes(self, data_preprocessed):
-        """Estimates number of classes for the classification model. Expects batch dimention."""
+    def get_logits(self, data_preprocessed: np.ndarray) -> np.ndarray:
+        """Gets logits for the classification model. Expects batch dimention."""
         forward_output = self.model_forward(data_preprocessed, preprocess=False)
         logits = self.postprocess_fn(forward_output)
         check_classification_output(logits)
-        return logits.shape[1]
+        return logits
 
 
 class Preset(Enum):

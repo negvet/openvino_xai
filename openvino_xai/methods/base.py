@@ -3,7 +3,8 @@
 
 import collections
 from abc import ABC, abstractmethod
-from typing import Any, Callable, Dict, Mapping
+from dataclasses import dataclass
+from typing import Any, Callable, Dict, Mapping, Tuple
 
 import numpy as np
 import openvino as ov
@@ -25,7 +26,7 @@ class MethodBase(ABC):
         self._model_compiled = None
         self.preprocess_fn = preprocess_fn
         self._device_name = device_name
-        self.metadata: Dict[Task, Any] = collections.defaultdict(dict)
+        self.predictions = {}
 
     @property
     def model_compiled(self) -> ov.CompiledModel | None:
@@ -50,3 +51,10 @@ class MethodBase(ABC):
     def load_model(self) -> None:
         core = ov.Core()
         self._model_compiled = core.compile_model(model=self._model, device_name=self._device_name)
+
+
+@dataclass
+class Prediction:
+    label: int | None = None
+    score: float | None = None
+    bounding_box: Tuple | None = None
