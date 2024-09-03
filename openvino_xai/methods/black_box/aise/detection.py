@@ -2,14 +2,13 @@
 # SPDX-License-Identifier: Apache-2.0
 
 import collections
-from typing import Any, Callable, Dict, List, Tuple
+from typing import Callable, Dict, List, Tuple
 
 import numpy as np
 import openvino.runtime as ov
 from openvino.runtime.utils.data_helpers.wrappers import OVDict
 from scipy.optimize import Bounds
 
-from openvino_xai.common.parameters import Task
 from openvino_xai.common.utils import (
     IdentityPreprocessFN,
     infer_size_from_image,
@@ -223,5 +222,5 @@ class AISEDetection(AISEBase):
         self.predictions[target] = Prediction(
             label=labels[target],
             score=scores[target],
-            bounding_box=[x1, y1, x2, y2],
+            bounding_box=(x1, y1, x2, y2),
         )

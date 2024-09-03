@@ -1,7 +1,7 @@
 # Copyright (C) 2023-2024 Intel Corporation
 # SPDX-License-Identifier: Apache-2.0
 
-from typing import Any, Dict, List, Tuple
+from typing import Dict, List, Tuple
 
 import cv2
 import numpy as np
@@ -81,6 +81,7 @@ class Visualizer:
         colormap: bool = True,
         overlay: bool = False,
         overlay_weight: float = 0.5,
+        overlay_prediction: bool = True,
     ) -> Explanation:
         return self.visualize(
             explanation,
@@ -91,6 +92,7 @@ class Visualizer:
             colormap,
             overlay,
             overlay_weight,
+            overlay_prediction,
         )
 
     def visualize(
@@ -103,6 +105,7 @@ class Visualizer:
         colormap: bool = True,
         overlay: bool = False,
         overlay_weight: float = 0.5,
+        overlay_prediction: bool = True,
     ) -> Explanation:
         """
         Saliency map postprocess method.
@@ -127,6 +130,8 @@ class Visualizer:
         :type overlay: bool
         :parameter overlay_weight: Weight of the saliency map when overlaying the input data with the saliency map.
         :type overlay_weight: float
+        :parameter overlay_prediction: If True, plot model prediction over the overlay.
+        :type overlay_prediction: bool
         """
         if original_input_image is not None:
             original_input_image = format_to_bhwc(original_input_image)
@@ -148,10 +153,14 @@ class Visualizer:
             saliency_map_np = self._apply_overlay(
                 explanation, saliency_map_np, original_input_image, output_size, overlay_weight
             )
-            if explanation.task == Task.CLASSIFICATION:
-                self._put_classification_info(saliency_map_np, indices_to_return, explanation.label_names, explanation.predictions)
-            if explanation.task == Task.DETECTION and explanation.predictions:
-                self._put_detection_info(saliency_map_np, indices_to_return, explanation.label_names, explanation.predictions)
+            if overlay_prediction and explanation.task == Task.CLASSIFICATION:
+                self._put_classification_info(
+                    saliency_map_np, indices_to_return, explanation.label_names, explanation.predictions  # type:ignore
+                )
+            if overlay_prediction and explanation.task == Task.DETECTION:
+                self._put_detection_info(
+                    saliency_map_np, indices_to_return, explanation.label_names, explanation.predictions  # type:ignore
+                )
         else:
             if resize:
                 if original_input_image is None and output_size is None:
@@ -166,9 +175,14 @@ class Visualizer:
         return self._update_explanation_with_processed_sal_map(explanation, saliency_map_np, indices_to_return)
 
     @staticmethod
-    def _put_classification_info(saliency_map_np: np.ndarray, indices: List[int | str], label_names: List[str] | None, predictions: Dict[int, Prediction]) -> None:
+    def _put_classification_info(
+        saliency_map_np: np.ndarray,
+        indices: List[int],
+        label_names: List[str] | None,
+        predictions: Dict[int, Prediction] | None,
+    ) -> None:
+        corner_location = 3, 17
         for smap, target_index in zip(range(len(saliency_map_np)), indices):
-            corner_location = 3, 17
             label = label_names[target_index] if label_names else str(target_index)
             if predictions and target_index in predictions:
                 score = predictions[target_index].score
@@ -186,16 +200,24 @@ class Visualizer:
             )
 
     @staticmethod
-    def _put_detection_info(saliency_map_np: np.ndarray, indices: List[int | str], label_names: List[str] | None, predictions: Dict[int, Prediction]) -> None:
+    def _put_detection_info(
+        saliency_map_np: np.ndarray,
+        indices: List[int],
+        label_names: List[str] | None,
+        predictions: Dict[int, Prediction] | None,
+    ) -> None:
+        if not predictions:
+            return
+
         for smap, target_index in zip(range(len(saliency_map_np)), indices):
             saliency_map = saliency_map_np[smap]
             label_index = predictions[target_index].label
             score = predictions[target_index].score
             box = predictions[target_index].bounding_box
-            
-            x1, y1, x2, y2 = box
-            cv2.rectangle(saliency_map, (int(x1), int(y1)), (int(x2), int(y2)), color=(255, 0, 0), thickness=2)
-            
+
+            x1, y1, x2, y2 = np.array(box, dtype=np.int32)
+            cv2.rectangle(saliency_map, (x1, y1), (x2, y2), color=(255, 0, 0), thickness=2)
+
             label = label_names[label_index] if label_names else label_index
             label_score = f"{label}|{score:.2f}"
             box_location = int(x1), int(y1 - 5)

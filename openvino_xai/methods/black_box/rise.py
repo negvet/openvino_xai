@@ -42,8 +42,9 @@ class RISE(BlackBoxXAIMethod):
         device_name: str = "CPU",
         prepare_model: bool = True,
     ):
-        super().__init__(model=model, preprocess_fn=preprocess_fn, device_name=device_name)
-        self.postprocess_fn = postprocess_fn
+        super().__init__(
+            model=model, postprocess_fn=postprocess_fn, preprocess_fn=preprocess_fn, device_name=device_name
+        )
 
         if prepare_model:
             self.prepare_model()
