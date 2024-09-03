@@ -99,6 +99,7 @@ def test_overlay():
 class TestVisualizer:
     @pytest.mark.parametrize("saliency_maps", SALIENCY_MAPS)
     @pytest.mark.parametrize("explain_all_classes", EXPLAIN_ALL_CLASSES)
+    @pytest.mark.parametrize("task", [Task.CLASSIFICATION, Task.DETECTION])
     @pytest.mark.parametrize("scaling", [True, False])
     @pytest.mark.parametrize("resize", [True, False])
     @pytest.mark.parametrize("colormap", [True, False])
@@ -108,6 +109,7 @@ class TestVisualizer:
         self,
         saliency_maps,
         explain_all_classes,
+        task,
         scaling,
         resize,
         colormap,
@@ -166,10 +168,10 @@ class TestVisualizer:
 
         if isinstance(saliency_maps, dict):
             predictions = {
-                0: Prediction([5, 0, 7, 4], 0.5, 0),
-                1: Prediction([2, 5, 9, 7], 0.5, 0),
+                0: Prediction(bounding_box=[5, 0, 7, 4], score=0.5, label=0),
+                1: Prediction(bounding_box=[2, 5, 9, 7], score=0.5, label=0),
             }
-            explanation = Explanation(saliency_maps, targets=-1, task=Task.CLASSIFICATION, predictions=predictions)
+            explanation = Explanation(saliency_maps, targets=-1, task=task, predictions=predictions)
             visualizer = Visualizer()
             explanation_output_size = visualizer(
                 explanation=explanation,
