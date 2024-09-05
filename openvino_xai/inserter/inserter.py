@@ -1,7 +1,8 @@
 # Copyright (C) 2023-2024 Intel Corporation
 # SPDX-License-Identifier: Apache-2.0
 
-import openvino.runtime as ov
+
+import openvino as ov
 from openvino.preprocess import PrePostProcessor
 
 from openvino_xai.common.utils import SALIENCY_MAP_OUTPUT_NAME
@@ -9,10 +10,10 @@ from openvino_xai.common.utils import SALIENCY_MAP_OUTPUT_NAME
 
 def insert_xai_branch_into_model(
     model: ov.Model,
-    xai_output_node,
-    set_uint8,
+    xai_output_node: ov.runtime.Node,
+    set_uint8: bool,
 ) -> ov.Model:
-    """Creates new model with XAI branch."""
+    """Create new model with XAI branch."""
     model_ori_outputs = model.outputs
     model_ori_params = model.get_parameters()
     model_xai = ov.Model([*model_ori_outputs, xai_output_node.output(0)], model_ori_params)

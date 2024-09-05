@@ -18,7 +18,7 @@ from openvino_xai.explainer.utils import (
     get_preprocess_fn,
 )
 from openvino_xai.metrics import ADCC, InsertionDeletionAUC, PointingGame
-from tests.unit.explanation.test_explanation_utils import VOC_NAMES
+from tests.unit.explainer.test_explanation_utils import VOC_NAMES
 
 MODEL_NAME = "mlc_mobilenetv3_large_voc"
 IMAGE_PATH = "tests/assets/cheetah_person.jpg"

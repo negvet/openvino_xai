@@ -19,7 +19,7 @@ from openvino_xai.inserter.inserter import insert_xai_branch_into_model
 from openvino_xai.methods.base import MethodBase
 
 
-class WhiteBoxMethod(MethodBase):
+class WhiteBoxMethod(MethodBase[ov.Model, ov.CompiledModel]):
     """
     Base class for white-box XAI methods.
 
@@ -64,7 +64,7 @@ class WhiteBoxMethod(MethodBase):
             logger.info("Provided IR model already contains XAI branch.")
             self._model = self._model_ori
             if load_model:
-                self.load_model()
+                self._model_compiled = ov.Core().compile_model(model=self._model, device_name=self._device_name)
             return self._model
 
         xai_output_node = self.generate_xai_branch()
@@ -72,7 +72,7 @@ class WhiteBoxMethod(MethodBase):
         if not has_xai(self._model):
             raise RuntimeError("Insertion of the XAI branch into the model was not successful.")
         if load_model:
-            self.load_model()
+            self._model_compiled = ov.Core().compile_model(model=self._model, device_name=self._device_name)
         return self._model
 
     @staticmethod
