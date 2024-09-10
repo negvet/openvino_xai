@@ -77,7 +77,7 @@ At the moment, *Image Classification* and *Object Detection* tasks are supported
 |                 | Object Detection     | White-Box | DetClassProbabilityMap | experimental / [src](openvino_xai/methods/white_box/det_class_probability_map.py)                |
 |                 |                      | Black-Box | AISEDetection          | [src](openvino_xai/methods/black_box/aise/detection.py)                                          |
 
-See more method comparison at [XAI method User Guide](docs/source/user-guide.md).
+See more method comparison at the [User Guide](docs/source/user-guide.md).
 
 ### Supported explainable models
 
