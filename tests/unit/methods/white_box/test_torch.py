@@ -35,7 +35,12 @@ class DummyCNN(torch.nn.Module):
     def __init__(self, num_classes: int = 2):
         super().__init__()
         self.num_classes = num_classes
-        self.feature = torch.nn.Identity()
+        self.feature = torch.nn.Sequential(
+            torch.nn.Identity(),
+            torch.nn.Identity(),
+            torch.nn.Identity(),
+            torch.nn.Identity(),
+        )
         self.neck = torch.nn.AdaptiveAvgPool2d((1, 1))
         self.output = torch.nn.LazyLinear(out_features=num_classes)
 
@@ -48,24 +53,46 @@ class DummyCNN(torch.nn.Module):
 
 
 class DummyVIT(torch.nn.Module):
-    def __init__(self, num_classes: int = 2):
+    def __init__(self, num_classes: int = 2, dim: int = 3):
         super().__init__()
         self.num_classes = num_classes
-        self.feature = torch.nn.Identity()
+        self.dim = dim
+        self.pre = torch.nn.Sequential(
+            torch.nn.Identity(),
+            torch.nn.Identity(),
+        )
+        self.feature = torch.nn.Sequential(
+            torch.nn.Identity(),
+            torch.nn.Identity(),
+            torch.nn.Identity(),
+            torch.nn.Identity(),
+        )
+        self.norm1 = torch.nn.LayerNorm(dim)
+        self.norm2 = torch.nn.LayerNorm(dim)
+        self.norm3 = torch.nn.LayerNorm(dim)
         self.output = torch.nn.LazyLinear(out_features=num_classes)
 
     def forward(self, x: torch.Tensor):
         b, c, h, w = x.shape
+        x = self.pre(x)
         x = x.reshape(b, c, h * w)
         x = x.transpose(1, 2)
         x = torch.cat([torch.rand((b, 1, c)), x], dim=1)
         x = self.feature(x)
+        x = x + self.norm1(x)
+        x = x + self.norm2(x)
+        x = x + self.norm3(x)
         x = self.output(x[:, 0])
         return torch.nn.functional.softmax(x, dim=1)
 
 
 def test_torch_method():
     model = DummyCNN()
+
+    with pytest.raises(ValueError):
+        method = TorchWhiteBoxMethod(model=model, target_layer="something_else")
+        model_xai = method.prepare_model()
+
     method = TorchWhiteBoxMethod(model=model, target_layer="feature")
     model_xai = method.prepare_model()
     assert has_xai(model_xai)
@@ -101,7 +128,9 @@ def test_torch_method():
 
 def test_prepare_model():
     model = DummyCNN()
-    method = TorchWhiteBoxMethod(model=model, target_layer="feature")
+    method = TorchWhiteBoxMethod(model=model, target_layer="feature", prepare_model=False)
+    model_xai = method.prepare_model(load_model=False)
+    assert method._model_compiled is None
     model_xai = method.prepare_model(load_model=False)
     assert method._model_compiled is None
     assert model is not model_xai
@@ -114,6 +143,35 @@ def test_prepare_model():
     method = TorchWhiteBoxMethod(model=model, target_layer="feature")
     model_xai = method.prepare_model(load_model=False)
     assert model_xai == model
+
+
+def test_detect_feature_layer():
+    model = DummyCNN()
+    method = TorchWhiteBoxMethod(model=model, target_layer=None)
+    model_xai = method.prepare_model()
+    assert has_xai(model_xai)
+    data = np.random.rand(1, 3, 5, 5)
+    output = method.model_forward(data)
+    assert type(output) == dict
+    assert method._feature_module is model_xai.feature
+    output = method.model_forward(data)
+    assert type(output) == dict  # still good for 2nd forward
+
+    model = DummyVIT()
+    with pytest.raises(RuntimeError):
+        # 4D feature map search should fail for ViTs
+        method = TorchWhiteBoxMethod(model=model, target_layer=None)
+
+    model = DummyVIT()
+    method = TorchViTReciproCAM(model=model, target_layer=None)
+    model_xai = method.prepare_model()
+    assert has_xai(model_xai)
+    data = np.random.rand(1, 3, 5, 5)
+    output = method.model_forward(data)
+    assert type(output) == dict
+    assert method._feature_module is model_xai.norm1
+    output = method.model_forward(data)
+    assert type(output) == dict  # still good for 2nd forward
 
 
 def test_activationmap() -> None:
@@ -156,13 +214,14 @@ def test_reciprocam(optimize_gap: bool) -> None:
 def test_vitreciprocam(use_gaussian: bool, use_cls_token: bool) -> None:
     batch_size = 2
     num_classes = 3
-    model = DummyVIT(num_classes=num_classes)
+    dim = 3
+    model = DummyVIT(num_classes=num_classes, dim=dim)
     method = TorchViTReciproCAM(
         model=model, target_layer="feature", use_gaussian=use_gaussian, use_cls_token=use_cls_token
     )
     model_xai = method.prepare_model()
     assert has_xai(model_xai)
-    data = np.random.rand(batch_size, 4, 5, 5)
+    data = np.random.rand(batch_size, dim, 5, 5)
     output = method.model_forward(data)
     assert type(output) == dict
     saliency_maps = output[SALIENCY_MAP_OUTPUT_NAME]

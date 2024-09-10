@@ -41,11 +41,15 @@ class TorchWhiteBoxMethod(MethodBase[torch.nn.Module, torch.nn.Module]):
         target_layer: str | None = None,
         embed_scaling: bool = True,
         device_name: str = "CPU",
+        prepare_model: bool = True,
         **kwargs,
     ):
         super().__init__(model=model, preprocess_fn=preprocess_fn, device_name=device_name)
         self._target_layer = target_layer
         self._embed_scaling = embed_scaling
+
+        if prepare_model:
+            self.prepare_model()
 
     def prepare_model(self, load_model: bool = True) -> torch.nn.Module:
         """Return XAI inserted model."""
@@ -53,13 +57,21 @@ class TorchWhiteBoxMethod(MethodBase[torch.nn.Module, torch.nn.Module]):
             if load_model:
                 self._model_compiled = self._model
             return self._model
+        if self._model_compiled is not None:
+            return self._model_compiled
 
         model = copy.deepcopy(self._model)
+
         # Feature
-        feature_layer = model.get_submodule(self._target_layer)
-        feature_layer.register_forward_hook(self._feature_hook)
+        if self._target_layer:
+            feature_module = self._find_feature_module_by_name(model, self._target_layer)
+        else:
+            feature_module = self._find_feature_module_auto(model)
+        feature_module.register_forward_hook(self._feature_hook)
+
         # Output
         model.register_forward_hook(self._output_hook)
+
         setattr(model, "has_xai", True)
         model.eval()
 
@@ -86,11 +98,51 @@ class TorchWhiteBoxMethod(MethodBase[torch.nn.Module, torch.nn.Module]):
             output[name] = data.numpy(force=True)
         return output
 
+    def _find_feature_module_by_name(self, model: torch.nn.Module, target_name: str) -> torch.nn.Module:
+        """Search the last layer by name sub string match."""
+        target_module = None
+        for name, module in model.named_modules():
+            if target_name in name:
+                target_module = module
+        if target_module is None:
+            raise ValueError(f"{target_name} is not found in the torch model")
+        return target_module
+
+    def _find_feature_module_auto(self, module: torch.nn.Module) -> torch.nn.Module:
+        """Detect feature module in the model."""
+        # Find the last layer that outputs 4D tensor during temp forward pass
+        self._feature_module = None
+        self._num_modules = 0
+
+        def _detect_hook(module: torch.nn.Module, inputs: Any, output: Any) -> None:
+            if isinstance(output, torch.Tensor):
+                module.index = self._num_modules
+                self._num_modules += 1
+                shape = output.shape
+                if len(shape) == 4 and shape[2] > 1 and shape[3] > 1:
+                    self._feature_module = module
+
+        global_hook_handle = torch.nn.modules.module.register_module_forward_hook(_detect_hook)
+        try:
+            module.forward(torch.zeros((1, 3, 128, 128)))
+        finally:
+            global_hook_handle.remove()
+        if self._feature_module is None:
+            raise RuntimeError("Feature module with 4D output is not found in the torch model")
+        if self._feature_module.index / self._num_modules < 0.5:  # Check if ViT-like architectures
+            raise RuntimeError(
+                f"Modules with 4D output end in early-half stages: {100 * self._feature_module.index / self._num_modules}%"
+            )
+
+        return self._feature_module
+
     def _feature_hook(self, module: torch.nn.Module, inputs: Any, output: torch.Tensor) -> torch.Tensor:
+        """Manipulate feature map for saliency map generation."""
         self._feature_map = output
         return output
 
     def _output_hook(self, module: torch.nn.Module, inputs: Any, output: torch.Tensor) -> Dict[str, torch.Tensor]:
+        """Split combined output B0xC into BxC precition and BxCxHxW saliency map."""
         return {
             "prediction": output,
             SALIENCY_MAP_OUTPUT_NAME: torch.empty_like(output),
@@ -137,8 +189,8 @@ class TorchReciproCAM(TorchWhiteBoxMethod):
     """
 
     def __init__(self, *args, optimize_gap: bool = False, **kwargs):
-        super().__init__(*args, **kwargs)
         self._optimize_gap = optimize_gap
+        super().__init__(*args, **kwargs)
 
     def _feature_hook(self, module: torch.nn.Module, inputs: Any, output: torch.Tensor) -> torch.Tensor:
         """feature_maps -> vertical stack of feature_maps + mosaic_feature_maps."""
@@ -153,16 +205,17 @@ class TorchReciproCAM(TorchWhiteBoxMethod):
         return torch.cat(feature_maps)
 
     def _output_hook(self, module: torch.nn.Module, inputs: Any, output: torch.Tensor) -> Dict[str, torch.Tensor]:
-        batch_size, _, h, w = self._feature_shape
-        num_classes = output.shape[1]
-        predictions = output[:batch_size]
-        saliency_maps = output[batch_size:]
-        saliency_maps = saliency_maps.reshape([batch_size, h * w, num_classes])
-        saliency_maps = saliency_maps.transpose(1, 2)  # BxHWxC -> BxCxHW
+        """Split combined output B0xC into BxC precition and BxCxHxW saliency map."""
+        batch_size, _, h, w = self._feature_shape  # B0xDxHxW
+        num_classes = output.shape[1]  # C
+        predictions = output[:batch_size]  # BxC
+        saliency_maps = output[batch_size:]  # BHWxC
+        saliency_maps = saliency_maps.reshape([batch_size, h * w, num_classes])  # BxHWxC
+        saliency_maps = saliency_maps.transpose(1, 2)  # BxCxHW
         if self._embed_scaling:
             saliency_maps = saliency_maps.reshape((batch_size * num_classes, h * w))
             saliency_maps = self._normalize_map(saliency_maps)
-        saliency_maps = saliency_maps.reshape([batch_size, num_classes, h, w])
+        saliency_maps = saliency_maps.reshape([batch_size, num_classes, h, w])  # BxCxHxW
         return {
             "prediction": predictions,
             SALIENCY_MAP_OUTPUT_NAME: saliency_maps,
@@ -209,9 +262,20 @@ class TorchViTReciproCAM(TorchReciproCAM):
         normalize: bool = True,
         **kwargs,
     ) -> None:
-        super().__init__(*args, **kwargs)
         self._use_gaussian = use_gaussian
         self._use_cls_token = use_cls_token
+        super().__init__(*args, **kwargs)
+
+    def _find_feature_module_auto(self, module: torch.nn.Module) -> torch.nn.Module:
+        """Detect feature module in the model by finding the 3rd last LayerNorm module."""
+        self._feature_module = None
+        norm_modules = [m for _, m in module.named_modules() if isinstance(m, torch.nn.LayerNorm)]
+
+        if len(norm_modules) < 3:
+            raise RuntimeError("Feature modules with LayerNorm are less than 3 in the torch model")
+
+        self._feature_module = norm_modules[-3]
+        return self._feature_module
 
     def _feature_hook(self, module: torch.nn.Module, inputs: Any, output: torch.Tensor) -> torch.Tensor:
         """feature_maps -> vertical stack of feature_maps + mosaic_feature_maps."""
