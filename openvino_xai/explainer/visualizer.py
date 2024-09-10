@@ -174,8 +174,8 @@ class Visualizer:
         # Convert back to dict
         return self._update_explanation_with_processed_sal_map(explanation, saliency_map_np, indices_to_return)
 
-    @staticmethod
     def _put_classification_info(
+        self,
         saliency_map_np: np.ndarray,
         indices: List[int],
         label_names: List[str] | None,
@@ -189,12 +189,13 @@ class Visualizer:
                 if score:
                     label = f"{label}|{score:.2f}"
 
+            font_scale = self._get_optimal_font_scale(label, corner_location[0], saliency_map_np[smap].shape[1])
             cv2.putText(
                 saliency_map_np[smap],
                 label,
                 org=corner_location,
                 fontFace=1,
-                fontScale=1.3,
+                fontScale=font_scale,
                 color=(255, 0, 0),
                 thickness=2,
             )
@@ -230,6 +231,27 @@ class Visualizer:
                 color=(255, 0, 0),
                 thickness=2,
             )
+
+    @staticmethod
+    def _get_optimal_font_scale(
+        text: str, 
+        x_start: int, 
+        image_width: int, 
+        font_scale: float = 1.0,
+        thickness: int = 1,
+    ) -> float:
+        font_face = 1
+        max_width = image_width - 5
+        while True:
+            text_size, _ = cv2.getTextSize(text, font_face, font_scale, thickness)
+            text_width, _ = text_size
+
+            if x_start + text_width <= max_width:
+                return font_scale
+
+            font_scale -= 0.1
+            if font_scale == 0.1:
+                return font_scale
 
     @staticmethod
     def _apply_scaling(explanation: Explanation, saliency_map_np: np.ndarray) -> np.ndarray:
