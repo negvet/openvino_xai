@@ -110,7 +110,7 @@ class RISE(BlackBoxXAIMethod):
         preset: Preset,
         num_masks: int | None = None,
         num_cells: int | None = None,
-    ) -> int:
+    ) -> Tuple[int, int]:
         if preset == Preset.SPEED:
             num_masks_ = 1000
             num_cells_ = 4
