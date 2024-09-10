@@ -181,7 +181,7 @@ class Visualizer:
         label_names: List[str] | None,
         predictions: Dict[int, Prediction] | None,
     ) -> None:
-        corner_location = 3, 17
+        corner_location = 3, 23
         for smap, target_index in zip(range(len(saliency_map_np)), indices):
             label = label_names[target_index] if label_names else str(target_index)
             if predictions and target_index in predictions:
@@ -194,10 +194,10 @@ class Visualizer:
                 saliency_map_np[smap],
                 label,
                 org=corner_location,
-                fontFace=1,
+                fontFace=2,
                 fontScale=font_scale,
                 color=(255, 0, 0),
-                thickness=2,
+                thickness=1,
             )
 
     @staticmethod
