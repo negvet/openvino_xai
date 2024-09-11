@@ -181,7 +181,7 @@ class Visualizer:
         label_names: List[str] | None,
         predictions: Dict[int, Prediction] | None,
     ) -> None:
-        x_start = 3
+        offset = 3
         for smap, target_index in zip(range(len(saliency_map_np)), indices):
             label = label_names[target_index] if label_names else str(target_index)
             if predictions and target_index in predictions:
@@ -189,11 +189,11 @@ class Visualizer:
                 if score:
                     label = f"{label}|{score:.2f}"
 
-            font_scale, text_height = self._fit_text_to_image(label, x_start, saliency_map_np[smap].shape[1])
+            font_scale, text_height = self._fit_text_to_image(label, offset, saliency_map_np[smap].shape[1])
             cv2.putText(
                 saliency_map_np[smap],
                 label,
-                org=(x_start, text_height + 1),
+                org=(offset, text_height + offset),
                 fontFace=2,
                 fontScale=font_scale,
                 color=(255, 0, 0),
