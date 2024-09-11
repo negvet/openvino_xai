@@ -261,7 +261,7 @@ class Explanation:
 
             map_to_plot = self.saliency_map[target_index]
 
-            axes[i].imshow(map_to_plot)
+            axes[i].imshow(map_to_plot, cmap="gray")
             axes[i].axis("off")  # Hide the axis
             axes[i].set_title(f"Class {label_name}")
 
