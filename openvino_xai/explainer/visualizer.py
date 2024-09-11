@@ -181,7 +181,7 @@ class Visualizer:
         label_names: List[str] | None,
         predictions: Dict[int, Prediction] | None,
     ) -> None:
-        corner_location = 3, 23
+        x_start = 3
         for smap, target_index in zip(range(len(saliency_map_np)), indices):
             label = label_names[target_index] if label_names else str(target_index)
             if predictions and target_index in predictions:
@@ -189,13 +189,11 @@ class Visualizer:
                 if score:
                     label = f"{label}|{score:.2f}"
 
-            font_scale = self._get_optimal_font_scale(label, corner_location[0], saliency_map_np[smap].shape[1])
-            print("saliency_map_np[smap].shape[1]", saliency_map_np[smap].shape[1])
-            print("font_scale", font_scale)
+            font_scale, text_height = self._fit_text_to_image(label, x_start, saliency_map_np[smap].shape[1])
             cv2.putText(
                 saliency_map_np[smap],
                 label,
-                org=corner_location,
+                org=(x_start, text_height + 1),
                 fontFace=2,
                 fontScale=font_scale,
                 color=(255, 0, 0),
@@ -235,25 +233,25 @@ class Visualizer:
             )
 
     @staticmethod
-    def _get_optimal_font_scale(
-        text: str, 
-        x_start: int, 
-        image_width: int, 
+    def _fit_text_to_image(
+        text: str,
+        x_start: int,
+        image_width: int,
         font_scale: float = 1.0,
         thickness: int = 1,
-    ) -> float:
+    ) -> Tuple[float, int]:
         font_face = 2
         max_width = image_width - 5
         while True:
             text_size, _ = cv2.getTextSize(text, font_face, font_scale, thickness)
-            text_width, _ = text_size
+            text_width, text_height = text_size
 
             if x_start + text_width <= max_width:
-                return font_scale
+                return font_scale, text_height
 
             font_scale -= 0.1
             if font_scale == 0.1:
-                return font_scale
+                return font_scale, text_height
 
     @staticmethod
     def _apply_scaling(explanation: Explanation, saliency_map_np: np.ndarray) -> np.ndarray:
