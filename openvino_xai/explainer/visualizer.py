@@ -190,6 +190,8 @@ class Visualizer:
                     label = f"{label}|{score:.2f}"
 
             font_scale = self._get_optimal_font_scale(label, corner_location[0], saliency_map_np[smap].shape[1])
+            print("saliency_map_np[smap].shape[1]", saliency_map_np[smap].shape[1])
+            print("font_scale", font_scale)
             cv2.putText(
                 saliency_map_np[smap],
                 label,
