@@ -242,7 +242,7 @@ class Visualizer:
         font_scale: float = 1.0,
         thickness: int = 1,
     ) -> float:
-        font_face = 1
+        font_face = 2
         max_width = image_width - 5
         while True:
             text_size, _ = cv2.getTextSize(text, font_face, font_scale, thickness)
