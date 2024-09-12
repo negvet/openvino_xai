@@ -200,8 +200,8 @@ class Visualizer:
                 thickness=1,
             )
 
-    @staticmethod
     def _put_detection_info(
+        self,
         saliency_map_np: np.ndarray,
         indices: List[int],
         label_names: List[str] | None,
@@ -210,6 +210,7 @@ class Visualizer:
         if not predictions:
             return
 
+        offset = 7
         for smap, target_index in zip(range(len(saliency_map_np)), indices):
             saliency_map = saliency_map_np[smap]
             label_index = predictions[target_index].label
@@ -221,15 +222,17 @@ class Visualizer:
 
             label = label_names[label_index] if label_names else label_index
             label_score = f"{label}|{score:.2f}"
-            box_location = int(x1), int(y1 - 5)
+            
+            font_scale, _ = self._fit_text_to_image(label_score, x1, saliency_map.shape[1])
+            box_location = x1, y1 - offset
             cv2.putText(
                 saliency_map,
                 label_score,
                 org=box_location,
-                fontFace=1,
-                fontScale=1.3,
+                fontFace=2,
+                fontScale=font_scale,
                 color=(255, 0, 0),
-                thickness=2,
+                thickness=1,
             )
 
     @staticmethod
