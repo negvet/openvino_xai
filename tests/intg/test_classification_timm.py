@@ -4,6 +4,7 @@
 import csv
 import os
 import shutil
+import subprocess  # nosec B404 (not a part of product)
 from pathlib import Path
 
 import cv2
@@ -479,7 +480,7 @@ class TestImageClassificationTimm:
         image_norm = image_norm[None, :]  # CHW -> 1CHW
         target_class = self.supported_num_classes[model_cfg["num_classes"]]
 
-        xai_model: torch.nn.Module = insert_xai(
+        model_xai: torch.nn.Module = insert_xai(
             model,
             task=Task.CLASSIFICATION,
             target_layer=target_layer,
@@ -487,15 +488,15 @@ class TestImageClassificationTimm:
         )
 
         with torch.no_grad():
-            xai_model.eval()
-            xai_output = xai_model(torch.from_numpy(image_norm).float())
-            xai_logit = xai_output["prediction"]
-            xai_prob = torch.softmax(xai_logit, dim=-1)
-            xai_label = xai_prob.argmax(dim=-1)[0]
-        assert xai_label.item() == target_class
-        assert xai_prob[0, xai_label].item() > 0.0
+            model_xai.eval()
+            outputs = model_xai(torch.from_numpy(image_norm).float())
+            logits = outputs["prediction"]
+            probs = torch.softmax(logits, dim=-1)
+            label = probs.argmax(dim=-1)[0]
+        assert label.item() == target_class
+        assert probs[0, label].item() > 0.0
 
-        saliency_map: np.ndarray = xai_output["saliency_map"].numpy(force=True)
+        saliency_map: np.ndarray = outputs["saliency_map"].numpy(force=True)
         saliency_map = saliency_map.squeeze(0)
         assert saliency_map.shape[-1] > 1 and saliency_map.shape[-2] > 1
         assert saliency_map.min() < saliency_map.max()
@@ -605,3 +606,22 @@ class TestImageClassificationTimm:
         if bool_string == "False":
             return 0
         raise ValueError
+
+
+class TestExample:
+    """Test sanity of examples/run_torch_onnx.py."""
+
+    @pytest.fixture(autouse=True)
+    def setup(self, fxt_data_root):
+        self.data_dir = fxt_data_root
+
+    def test_torch_onnx(self, tmp_path_factory: pytest.TempPathFactory):
+        output_root = tmp_path_factory.mktemp("openvino_xai")
+        output_dir = Path(output_root) / "example"
+        cmd = [
+            "python",
+            "examples/run_torch_onnx.py",
+            "--output_dir",
+            output_dir,
+        ]
+        subprocess.run(cmd, check=True)  # noqa: S603, PLW1510
