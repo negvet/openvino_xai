@@ -188,7 +188,7 @@ class Explanation:
             map_to_save = cv2.cvtColor(map_to_save, code=cv2.COLOR_RGB2BGR)
             if isinstance(target_idx, str):
                 target_name = "activation_map"
-            elif self.label_names and isinstance(target_idx, np.int64) and self.task != Task.DETECTION:
+            elif self.label_names and isinstance(target_idx, (int, np.int64)) and self.task != Task.DETECTION:
                 target_name = self.label_names[target_idx]
             else:
                 target_name = str(target_idx)
