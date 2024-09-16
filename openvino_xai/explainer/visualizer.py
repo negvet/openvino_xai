@@ -222,7 +222,7 @@ class Visualizer:
 
             label = label_names[label_index] if label_names else label_index
             label_score = f"{label}|{score:.2f}"
-            
+
             font_scale, _ = self._fit_text_to_image(label_score, x1, saliency_map.shape[1])
             box_location = x1, y1 - offset
             cv2.putText(
