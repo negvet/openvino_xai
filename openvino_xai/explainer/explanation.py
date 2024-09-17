@@ -266,7 +266,7 @@ class Explanation:
             elif map_to_plot.ndim == 2:
                 axes[i].imshow(map_to_plot, cmap="gray")
             else:
-                raise ValueError("Saliency map expected to be 3 or 2-dimensional, but got {map_to_plot.ndim}.")
+                raise ValueError(f"Saliency map expected to be 3 or 2-dimensional, but got {map_to_plot.ndim}.")
             axes[i].axis("off")  # Hide the axis
             axes[i].set_title(f"Class {label_name}")
 
