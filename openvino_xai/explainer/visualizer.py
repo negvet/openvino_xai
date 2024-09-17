@@ -253,7 +253,7 @@ class Visualizer:
                 return font_scale, text_height
 
             font_scale -= 0.1
-            if font_scale == 0.1:
+            if abs(font_scale - 0.1) < 0.001:
                 return font_scale, text_height
 
     @staticmethod
