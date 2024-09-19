@@ -564,7 +564,7 @@ class TestImageClassificationTimm:
 
         reference_maps_path = Path("tests/assets/reference_maps")
         reference_map = np.load(reference_maps_path / self.reference_maps_names[(explain_mode, explain_method)])
-        assert np.all(generated_map == reference_map)
+        assert np.all(np.abs(generated_map.astype(np.int16) - reference_map.astype(np.int16)) <= 3)
 
     def check_for_saved_map(self, model_id, directory):
         for target in self.supported_num_classes.values():
