@@ -562,7 +562,7 @@ class TestImageClassificationTimm:
         else:
             generated_map = explanation.saliency_map[target_class]
 
-        reference_maps_path = Path("/home/negvet/openvino_xai/tests/assets/reference_maps")
+        reference_maps_path = Path("tests/assets/reference_maps")
         reference_map = np.load(reference_maps_path / self.reference_maps_names[(explain_mode, explain_method)])
         assert np.all(generated_map == reference_map)
 
