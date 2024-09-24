@@ -45,8 +45,8 @@ class RISE(BlackBoxXAIMethod):
         super().__init__(
             model=model, postprocess_fn=postprocess_fn, preprocess_fn=preprocess_fn, device_name=device_name
         )
-        self.num_masks = None
-        self.num_cells = None
+        self.num_masks: int | None = None
+        self.num_cells: int | None = None
 
         if prepare_model:
             self.prepare_model()
